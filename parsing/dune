@@ -1,0 +1,16 @@
+(ocamllex
+  (modules forestLexer)
+)
+
+(menhir
+  (modules forestParser)
+  (flags ("-la" "2"))
+)
+
+(library
+ (public_name parser_helper)
+ (name parser_helper)
+ (libraries core async compiler-libs.common ppxlib)
+ (preprocess (pps ppx_jane ppx_deriving.std))
+ (modules ForestLexer ForestParser ForestTypes ParserHelper)
+)

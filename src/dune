@@ -1,0 +1,9 @@
+(library
+  (public_name forest)
+  (name forest)
+  (flags (:standard -w -32))
+  (libraries core zfs re str)
+  (preprocess (pps ppx_deriving.show ppx_deriving.make ppx_jane))
+  (private_modules Filesystem) ; Add EvalForest and Utils?
+  (modules Utils ForestIntf EvalForest Filesystem)
+)

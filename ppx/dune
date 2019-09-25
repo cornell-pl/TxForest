@@ -1,0 +1,9 @@
+(library
+ (public_name ppx_forest)
+ (name ppx_forest)
+ (kind ppx_rewriter)
+ (ppx_runtime_libraries re ppxlib parser_helper)
+ (libraries re ppxlib parser_helper)
+ (preprocess (pps ppxlib.metaquot))
+ (modules PpxTXForest)
+)

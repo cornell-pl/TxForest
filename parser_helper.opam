@@ -1,0 +1,20 @@
+opam-version: "2.0.2"
+version: "0.1"
+maintainer: "dilorenzo@cs.cornell.edu"
+authors: ["Jonathan DiLorenzo" "Katie Mancini"]
+homepage: "https://github.com/cornell-pl/ocaml-zfs"
+bug-reports: "https://github.com/cornell-pl/ocaml-zfs/issues"
+dev-repo: "https://github.com/cornell-pl/ocaml-zfs"
+license: "None"
+depends: ["async" {>= "v0.11.0"}
+          "core" {>= "v0.11.3"}
+          "dune" {build & >= "1.6"} 
+          "ocaml" {>= "4.05"} 
+          "menhir" {>= "20181113"}
+          "ppx_deriving" {>= "4.2.1"}
+          "ppx_deriving_yojson" {>= "3.3"}
+         ]
+build: [
+  ["dune" "build"]
+]
+build-test: [[ "dune" "runtest" ]]

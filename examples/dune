@@ -1,0 +1,83 @@
+(executable
+  (public_name testPpx)
+  (name testPpx)
+  (preprocess (pps ppx_jane ppx_forest))
+  (libraries core forest str)
+  (modules TestPpx)
+  (package forest)
+)
+
+(executable
+  (public_name simpleEval)
+  (name simpleEval)
+  (preprocess (pps ppx_jane ppx_forest))
+  (libraries core forest)
+  (modules SimpleEval)
+  (package forest)
+)
+
+(executable
+  (public_name simpleEvalSurf)
+  (name simpleEvalSurf)
+  (preprocess (pps ppx_jane ppx_forest))
+  (libraries core forest)
+  (modules SimpleEvalSurf)
+  (package forest)
+)
+
+;(library
+;  (name ExUtils)
+;  (modules ExUtils)
+;  (preprocess (pps ppx_jane))
+;  (libraries core forest)
+;)
+;
+;(executable
+;  (public_name grades)
+;  (name grades)
+;  (preprocess (pps ppx_jane))
+;  (libraries core forest ExUtils)
+;  (modules Grades)
+;  (package forest)
+;)
+;
+;(executable
+;  (public_name shelter)
+;  (name shelter)
+;  (preprocess (pps ppx_jane))
+;  (libraries core forest ExUtils)
+;  (modules Shelter)
+;  (package forest)
+;)
+
+;(executable
+;  (public_name shelterppx)
+;  (name shelterppx)
+;  (preprocess (pps ppx_jane ppx_forest))
+;  (libraries core forest ExUtils str)
+;  (modules Shelterppx)
+;  (package forest)
+;)
+
+;(executable
+;  (public_name simple)
+;  (name simple)
+;  (preprocess (pps ppx_jane))
+;  (libraries core forest ExUtils)
+;  (modules Simple)
+;  (package forest)
+;)
+
+
+;(executable
+;  (public_name dependency)
+;  (name dependency)
+;  (preprocess (pps ppx_jane))
+;  (libraries core forest)
+;  (modules Dependency)
+;  (package forest)
+;)
+
+;(env
+;  (dev
+;    (flags (:standard -warn-error -A))))
