@@ -1,7 +1,10 @@
 # TxForest
 TxForest is a DSL (Domain Specific language) for FileSystems.
 
-[paper](http://www.cs.cornell.edu/~dilorenzo/docs/txforest.pdf)
+paper writen about this DSL: [paper](http://www.cs.cornell.edu/~dilorenzo/docs/txforest.pdf)
+
+related and original repo of this work (contains ZFS a related DSL and the source latex of the paper on this project): [ZFS repo](https://github.com/cornell-pl/ocaml-zfs)
+
 
 ## requirements
 - ocaml (version 4.05)
