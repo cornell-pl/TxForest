@@ -1,2 +1,2 @@
 
-open PosixFilesystem
+include PosixFilesystem

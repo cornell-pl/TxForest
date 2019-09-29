@@ -1,30 +1,37 @@
 open Core
 open Forest
+(* open EvalForest *)
 open ForestIntf
 open ForestIntf.TxForestCoreExn
 open Result
 
 let i = "index"
 
-[%%txforest {|
+(* [%%txforest {|
   d = directory {
       index is i :: file;
       data is [x :: file | x <- matches GL "*" , $x = "foo"$ ];
     }
-  
+
   f = directory {
       x is "foo" :: file where $fetch_file this = "yay"$;
       y is $down x |> fetch_file$ :: file option
     }
-|}]
+|}] *)
 
 [%%txforest {|
+
+  ofile = "hello"  :: file
+
+|}]
+
+(* [%%txforest {|
 
   ofile = "hello"  :: file option
 
-|}]
+|}] *)
 
-[%%txforest {|
+(* [%%txforest {|
 
   afile = file
 
@@ -32,18 +39,18 @@ let i = "index"
                   baz is "bar" :: afile
                 }
 
-|}]
+|}] *)
 
 
-[%%txforest {|
+(* [%%txforest {|
 
   c1 = [ x :: file | x <- $String.Set.of_list ["foo";"bar";"etc"]$ ]
 
-|}]
+|}] *)
 
 
-[%%txforest {|
+(* [%%txforest {|
 
   c2 = [x :: file | x <- matches GL "*.txt"]
 
-|}]
+|}] *)
