@@ -1,6 +1,5 @@
-EXAMPLES= testPpx.exe
-					#paperExOCaml.exe testPpx.exe simpleEval.exe paperEx.exe simpleEvalSurf.exe \
-					#paperExOld.exe
+EXAMPLES= paperExOCaml.exe testPpx.exe simpleEval.exe paperEx.exe simpleEvalSurf.exe \
+					paperExOld.exe
 					# grades.exe shelter.exe simple.exe  dependency.exe
 
 
