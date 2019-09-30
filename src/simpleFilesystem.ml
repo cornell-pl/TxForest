@@ -19,96 +19,124 @@ open Utils
 
 (* ---------------   Types ---------------- *)
 
-module StringMap = Map.Make(String)
+(*Note: this is the Map inside Core, not the pervasives one*)
+module FS = Hashtbl.Make(String)
 (*note: the filesytem is the one above this path*)
 
 type contents = Dir of string list | File of string
-type fs = contents StringMap.t
-type path = string list
-
+type path = string
+type fs = contents FS.t * path ref
 
 type t = fs * path
 
 
 (* ----------   Helper Functions ---------- *)
 
-let path_to_string (p: path) : string =
-  String.concat ~sep:"." (List.rev p)
+let list_path_to_string_path (p: string list) : string =
+  String.concat ~sep:"/" (List.rev p)
 
+let string_path_to_list_path (p: string ) : string list =
+  let path_peices = String.split p ~on:'/' in
+    List.rev path_peices
 
 (* ----------   Exposed Functions ---------- *)
 
 
 let create (p': path) : t or_fail =
-  mk_ok (StringMap.empty, p')
+  mk_ok ((FS.create ~growth_allowed:true (), ref p'), p')
 
 (*TODO: make this do the checking*)
-let make_file ((fs, p) :t) (u: string) :t or_fail =
-  let stringified_path = path_to_string p in
-  let updated_map = StringMap.add stringified_path (File u) fs in
-    mk_ok (updated_map, p)
+let make_file (((fs, working_path), _) :t) (u: string) :t or_fail =
+  let stringified_path = !working_path in
+  let entry = File u in
+  let _ = FS.set fs ~key:stringified_path ~data:entry in
+    mk_ok ((fs, working_path), stringified_path)
 
 (*TODO: make this do the checking*)
-let make_directory ((fs, p): t) ( new_lst: string list) : t or_fail =
-   let stringified_path = path_to_string p in
-   let updated_map = StringMap.add stringified_path (Dir new_lst) fs in
-     mk_ok (updated_map, p)
+let make_directory (((fs, working_path), _): t) ( new_lst: string list) : t or_fail =
+  let stringified_path = !working_path in
+  let entry = (Dir new_lst) in
+  let _ = FS.set fs ~key:stringified_path ~data:entry in
+    mk_ok ((fs, working_path), stringified_path)
 
 (*TODO: make this do the checking*)
-let add_to_directory ((fs, p): t) (u:string) : t or_fail =
-  let stringified_path = path_to_string p in
-  let cur_entry = StringMap.find stringified_path fs in
+let add_to_directory (((fs, working_path), _): t) (u:string) : t or_fail =
+  let stringified_path = !working_path in
+  let cur_entry = FS.find fs stringified_path in
     match cur_entry with
-    | Dir lst -> begin
-        let updated_map = StringMap.add stringified_path (Dir u::lst) fs in
-          mk_ok (updated_map, p)
+    | Some (Dir lst) -> begin
+        let entry = Dir (List.dedup_and_sort ~compare:String.compare (u::lst)) in
+        let _ = FS.set fs ~key:stringified_path ~data:entry in
+          mk_ok ((fs, working_path), stringified_path)
     end
     | _ -> failwith "unimplemted"
 
 (*TODO: make this do the checking*)
-let gotoChild (u: string) ((fs, p):t) : t or_fail =
-   mk_ok (fs, u::p)
+let gotoChild (u: string) (((fs, working_path), _):t) : t or_fail =
+  let stringified_path = !working_path in
+  let list_path = List.rev (string_path_to_list_path stringified_path) in
+  let updated_path = list_path_to_string_path (List.rev (u::list_path)) in
+    working_path := updated_path;
+    mk_ok ((fs, working_path), updated_path)
 
 (*TODO: make this do the checking*)
-let goto (p:string) ((fs,_):t) : t or_fail =
-   mk_ok (fs, p)
+let goto (p':string) (((fs, working_path),_):t) : t or_fail =
+  working_path := p';
+  mk_ok ((fs, working_path), p')
 
 (*TODO: make this do the checking*)
-let pop ( (fs, p) :t) : t or_fail =
-  match p with
-  | u :: p' -> mk_ok (fs, p')
+let pop ( ((fs, working_path), _) :t) : t or_fail =
+  let stringified_path = !working_path in
+  match List.rev (string_path_to_list_path (stringified_path) ) with
+  | u :: p' -> begin
+    let updated_path = list_path_to_string_path (List.rev(p')) in
+      working_path := updated_path;
+      mk_ok ((fs, working_path), updated_path)
+  end
   | _ -> failwith "unimplemented"
 
 (*TODO: make this do the checking*)
-let fetch ((fs, p):t) : contents =
-  let stringified_path = path_to_string p in
-    StringMap.find stringified_path fs
+let fetch (((fs, working_path), _):t) : contents =
+  let stringified_path = !working_path in
+    match FS.find fs stringified_path with
+    | None -> failwith "unimplemted"
+    | Some c -> c
 
-let exists ((fs, p):t) : bool =
-  let stringified_path = path_to_string p in
-    StringMap.mem stringified_path fs
+let exists (((fs, working_path), _):t) : bool =
+  let stringified_path = !working_path in
+    FS.mem fs stringified_path
 
 let is_dir (t:t) : bool = fetch t |> function
   | Dir _ -> true
   | File _ -> false
 
 
-let sync_path ((fs,p) : t) : t or_fail =
-   mk_ok (fs, p)
+let sync_path (((fs, working_path) ,p) : t) : t or_fail =
+  working_path := p;
+  mk_ok ((fs, working_path), p)
+
+
+let dummy_path = ""
+
+
+let convert_result res = map_error res ~f:(fun err -> (OpError err))
+
+(*TODO: error handlling*)
+let run_txn ~(f : fs -> 'a or_fail) () : ('a,txError) Core.result =
+  match create dummy_path with
+  | Ok (fs, _) -> f fs |> convert_result
+  | Error _ -> Error TxError
+
 
 let loop_txn ~(f : fs -> 'a) () =
   let x : 'a option ref = ref None in
   let apply fs =
     x := Some(f fs);
-    fs
+    mk_ok fs
   in
     run_txn ~f:apply ();
     Option.value_exn ~message:"loop_txn: Something went horribly wrong" !x
 
-(*TODO: error handlling*)
-let run_txn ~f () =
-  let fs = create dummy_path in
-    f fs
 
-let dummy_path = []
+
 
