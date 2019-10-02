@@ -43,7 +43,16 @@ let string_path_to_list_path (p: string ) : string list =
 
 
 let create (p': path) : t or_fail =
-  mk_ok ((FS.create ~growth_allowed:true (), ref p'), p')
+  let fs = FS.create ~growth_allowed:true () in
+    FS.set fs ~key:"/simple" ~data:(Dir ["index.txt";"dir"]);
+    FS.set fs ~key:"/simple/index.txt" ~data:(File "a\nb\nc\nd");
+    FS.set fs ~key:"/simple/dir" ~data:(Dir ["a"; "b"; "c"; "d"; "e"]);
+    FS.set fs ~key:"/simple/dir/a" ~data:(File "apple");
+    FS.set fs ~key:"/simple/dir/b" ~data:(File "banana");
+    FS.set fs ~key:"/simple/dir/c" ~data:(File "carrot");
+    FS.set fs ~key:"/simple/dir/d" ~data:(File "dragon fruit");
+    FS.set fs ~key:"/simple/dir/e" ~data:(File "eggplant");
+    mk_ok ((fs, ref p'), p')
 
 (*TODO: make this do the checking*)
 let make_file (((fs, working_path), _) :t) (u: string) :t or_fail =
@@ -59,7 +68,7 @@ let make_directory (((fs, working_path), _): t) ( new_lst: string list) : t or_f
   let _ = FS.set fs ~key:stringified_path ~data:entry in
     mk_ok ((fs, working_path), stringified_path)
 
-(*TODO: make this do the checking*)
+(*TODO: make this do the checking and add the file?*)
 let add_to_directory (((fs, working_path), _): t) (u:string) : t or_fail =
   let stringified_path = !working_path in
   let cur_entry = FS.find fs stringified_path in
@@ -67,6 +76,7 @@ let add_to_directory (((fs, working_path), _): t) (u:string) : t or_fail =
     | Some (Dir lst) -> begin
         let entry = Dir (List.dedup_and_sort ~compare:String.compare (u::lst)) in
         let _ = FS.set fs ~key:stringified_path ~data:entry in
+        let _ = FS.set fs ~key:(stringified_path ^ "/" ^ u) ~data:(File "") in
           mk_ok ((fs, working_path), stringified_path)
     end
     | _ -> failwith "unimplemted"
@@ -74,8 +84,8 @@ let add_to_directory (((fs, working_path), _): t) (u:string) : t or_fail =
 (*TODO: make this do the checking*)
 let gotoChild (u: string) (((fs, working_path), _):t) : t or_fail =
   let stringified_path = !working_path in
-  let list_path = List.rev (string_path_to_list_path stringified_path) in
-  let updated_path = list_path_to_string_path (List.rev (u::list_path)) in
+  let list_path = string_path_to_list_path stringified_path in
+  let updated_path = list_path_to_string_path (u::list_path) in
     working_path := updated_path;
     mk_ok ((fs, working_path), updated_path)
 
@@ -87,9 +97,9 @@ let goto (p':string) (((fs, working_path),_):t) : t or_fail =
 (*TODO: make this do the checking*)
 let pop ( ((fs, working_path), _) :t) : t or_fail =
   let stringified_path = !working_path in
-  match List.rev (string_path_to_list_path (stringified_path) ) with
+  match string_path_to_list_path stringified_path with
   | u :: p' -> begin
-    let updated_path = list_path_to_string_path (List.rev(p')) in
+    let updated_path = list_path_to_string_path p' in
       working_path := updated_path;
       mk_ok ((fs, working_path), updated_path)
   end
@@ -99,7 +109,7 @@ let pop ( ((fs, working_path), _) :t) : t or_fail =
 let fetch (((fs, working_path), _):t) : contents =
   let stringified_path = !working_path in
     match FS.find fs stringified_path with
-    | None -> failwith "unimplemted"
+    | None -> failwith stringified_path
     | Some c -> c
 
 let exists (((fs, working_path), _):t) : bool =
