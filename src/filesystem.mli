@@ -16,7 +16,7 @@ type t = fs * path
 val create : path -> t or_fail
 
 (*[make_file t u] makes a file at the current path in the file system with
- * context u*)
+ * content u*)
 val make_file: t -> string -> t or_fail
 
 (*[make_directory t lst] makes a directory at the current path in the filesystem
