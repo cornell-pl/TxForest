@@ -13,9 +13,7 @@
 (*
  * TODO:
  * - NEEEEEEDDD TO MAKE SURE THAT THE EXAMPLED GIVE GOOD STARTING PATH
- * - implement remove
  * - check the error handling especially with removing paths and goto and stuff, careful
- * - fix the failwith unimplmented
  * - dummy path seems kinda dangerous, hmmmmmmmmm
  *        - seems it would be good to have enviroment variable for where the
  *          fs should be, for the dummy var
@@ -25,8 +23,8 @@ open Core
 open Result
 open Result.Let_syntax
 open Utils
-(* open Sys -> uses the Sys in Core
-open Unix -> uses the unix in Core*)
+(* open Sys -> uses the Sys in Core, decided not to open for transparence
+open Unix -> uses the unix in Core, same ^*)
 
 (* ---------------   Types ---------------- *)
 
