@@ -12,9 +12,7 @@
 
 (*
  * TODO:
- * - fix the path stuff
  * - NEEEEEEDDD TO MAKE SURE THAT THE EXAMPLED GIVE GOOD STARTING PATH
- * - switch to using all core file system manipulations so that its consitant
  * - error handing everywhere
  * - fix the failwith unimplmented
  * - make sure closing files
@@ -43,6 +41,8 @@ type t = fs * path
 (* ----------   Helper Functions ---------- *)
 
 let default_perm = 0o640
+
+let convert_result res = map_error res ~f:(fun err -> (OpError err))
 
 let exists_h ( p : path) : bool =
   match Sys.file_exists ~follow_symlinks:false p with
@@ -85,83 +85,118 @@ let make_file_h (p: path) (u: string) : unit =
     Out_channel.flush new_file_channel;
     Out_channel.close new_file_channel
 
-
-(* ----------   Exposed Functions ---------- *)
-
-(*TODO: error handling*)
-let create (p: path) : t or_fail =
+let check_path_preconditions ((fs, p): t) :t or_fail=
+  let working_dir = Unix.getcwd () in
   let (parent_dir, _) = Filename.split p in
-  if is_dir_h parent_dir then begin
-    Sys.chdir parent_dir;
-    mk_ok ((), p)
-  end else
-    mk_err "path ( %s ) does not exist" p
-
-
-(*TODO: checking if is dir*)
-(*TODO: double check on permision*)
-let make_file ((fs, p) :t) (u: string) :t or_fail =
-  make_file_h p u;
-  mk_ok ((), p)
-
-
-(*TODO: checking if is file or dir*)
-(*TODO: double check on permision*)
-let make_directory ((fs, p): t) ( new_lst: string list) : t or_fail =
-  if is_file_h p then remove_file_h p;
-  if not (exists_h p) then Unix.mkdir ~perm:default_perm p;
-  let (parent_dir, dirname) = Filename.split p in
-  let cur_lst = Sys.ls_dir p in
-  let (rem_lst: string list) = List.filter cur_lst ~f:(fun u -> not (List.mem new_lst u ~equal:String.equal)) in
-  let (add_lst: string list) = List.filter new_lst ~f:(fun u -> not (List.mem cur_lst u ~equal:String.equal)) in
-    Unix.chdir p;
-    List.iter rem_lst ~f(fun u -> remove_h (Filename.concat p u));
-    List.iter add_lst ~f(fun u -> let _ = make_file_h (Filename.concat p u) "" in ());
-    Unix.chdir parent_dir;
+    if not(exists_h parent_dir) then
+      mk_err "path precondition check - parent of curent path ( %s ) does not exist" p
+    else if not (is_dir_h parent_dir) then
+      mk_err "path precondition check - parent of curent path ( %s ) is not a drectory" p
+    else if working_dir <> parent_dir then
+      mk_err "path precondition check - working directory ( %s ) does not match parent of current path ( %s )" working_dir p
+    else
       mk_ok ((), p)
 
 
-(*TODO: checking the path first*)
-let add_to_directory ((fs, p): t) (u:string) : t or_fail =
-  if is_file_h p then remove_file_h p;
-  if not (exists (fs, p)) then Unix.mkdir ~perm:default_perm p;
-    Unix.chdir p;
-    let%bind _ = make_file_h (Filename.concat p u) "" in
+(* ----------   Exposed Functions ---------- *)
+
+let create (p: path) : t or_fail =
+  let (parent_dir, _) = Filename.split p in
+  if not (exists_h parent_dir) then
+    mk_err "create - parent of path ( %s ) does not exist" p
+  else if not (is_dir_h parent_dir) then
+    mk_err "create - parent of path ( %s ) is not a directory" p
+  else begin
+    Sys.chdir parent_dir;
+    mk_ok ((), p)
+  end
+
+let make_file ((fs, p) :t) (u: string) :t or_fail =
+  let%bind _ = check_path_preconditions (fs, p) in
+    make_file_h p u;
+    mk_ok ((), p)
+
+let make_directory ((fs, p): t) ( new_lst: string list) : t or_fail =
+  let%bind _ = check_path_preconditions (fs, p) in
+    if is_file_h p then remove_file_h p;
+    if not (exists_h p) then Unix.mkdir ~perm:default_perm p;
     let (parent_dir, dirname) = Filename.split p in
+    let cur_lst = Sys.ls_dir p in
+    let (rem_lst: string list) = List.filter cur_lst ~f:(fun u -> not (List.mem new_lst u ~equal:String.equal)) in
+    let (add_lst: string list) = List.filter new_lst ~f:(fun u -> not (List.mem cur_lst u ~equal:String.equal)) in
+      Unix.chdir p;
+      List.iter rem_lst ~f:(fun u -> remove_h (Filename.concat p u));
+      List.iter add_lst ~f:(fun u -> let _ = make_file_h (Filename.concat p u) "" in ());
+      Unix.chdir parent_dir;
+      mk_ok ((), p)
+
+let add_to_directory ((fs, p): t) (u:string) : t or_fail =
+  let%bind _ = check_path_preconditions (fs, p) in
+    if is_file_h p then remove_file_h p;
+    if not (exists_h p) then Unix.mkdir ~perm:default_perm p;
+    let (parent_dir, dirname) = Filename.split p in
+      Unix.chdir p;
+      make_file_h (Filename.concat p u) "";
       Unix.chdir parent_dir;
       mk_ok ((), p)
 
 let goto (new_p:string) ((fs,p):t) : t or_fail =
   let (parent_dir, dirname) = Filename.split new_p in
-    Unix.chdir parent_dir;
-    mk_ok ((), new_p)
+    if not (exists_h parent_dir) then
+      mk_err "goto - parent of new path ( %s ) does not exist" new_p
+    else if not (is_dir_h parent_dir) then
+      mk_err "goto - parent of new path ( %s ) is not a directory" new_p
+    else begin
+      Unix.chdir parent_dir;
+      mk_ok ((), new_p)
+    end
 
 let gotoChild (u: string) ((fs, p):t) : t or_fail =
-  Unix.chdir p;
-  mk_ok ((), Filename.concat p u)
+  let%bind _ = check_path_preconditions (fs, p) in
+    if not (exists_h p) then
+      mk_err "gotochild - parent of new path ( %s ) does not exist" (Filename.concat p u)
+    else if not (is_dir_h p) then
+      mk_err "gotochild - parent of new path ( %s ) is not a directory" (Filename.concat p u)
+    else begin
+      Unix.chdir p;
+      mk_ok ((), Filename.concat p u)
+    end
 
 let pop ( (fs, p) :t) : t or_fail =
+  let%bind _ = check_path_preconditions (fs, p) in
   let (parent_dir, dirname) = Filename.split p in
   let (parent_parent_dir, _) = Filename.split p in
-      chdir parent_parent_dir;
-      mk_ok ((), parent_dir)
+    Unix.chdir parent_parent_dir;
+    mk_ok ((), parent_dir)
 
 let exists ((fs, p):t) : bool = exists_h p
 
 let is_dir ((fs, p):t) : bool = is_dir_h p
 
 let fetch ((fs, p):t) : contents =
-  if is_dir_h p then
-    let dir_contents = Sys.ls_dir p in
-      Dir dir_contents
-  else
-    let file_contents = In_channel.read_all p in
-      File file_contents
+  match check_path_preconditions (fs, p) with
+  | Ok _ -> begin
+    if is_dir_h p then
+      let dir_contents = Sys.ls_dir p in
+        Dir dir_contents
+    else
+      let file_contents = In_channel.read_all p in
+        File file_contents
+  end
+  | Error e -> failwith e
 
 let sync_path ((fs,p) : t) : t or_fail =
   let (parent_dir, dirname) = Filename.split p in
-    Unix.chdir parent_dir;
-    mk_ok ((), p)
+    if not (exists_h parent_dir) then
+      mk_err "sync_path - parent of new path ( %s ) does not exist" p
+    else if not (is_dir_h parent_dir) then
+      mk_err "sync_path - parent of new path ( %s ) is not a directory" p
+    else begin
+      Unix.chdir parent_dir;
+      mk_ok ((), p)
+    end
+
+let dummy_path = "/Users/katie/Documents/TxForest/example_fs_root"
 
 (*TODO: error handlling*)
 let run_txn ~(f : fs -> 'a or_fail) () : ('a,txError) Core.result =
@@ -178,5 +213,5 @@ let loop_txn ~(f : fs -> 'a) () =
     run_txn ~f:apply ();
     Option.value_exn ~message:"loop_txn: Something went horribly wrong" !x
 
-let dummy_path = "~/Documents/TxForest/example_fs_root"
+
 

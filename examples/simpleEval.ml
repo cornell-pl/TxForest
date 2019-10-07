@@ -27,14 +27,14 @@ let print_file z = fetch_file z  >>| p "File Contents: %s" >>= fun _ -> mk_ok z
 let get_info_for_id (id: int) z =
   goto_dir_name "dir" z
   >>= down
-  >>= goto_comp_pos id 
+  >>= goto_comp_pos id
   >>= down
   >>= print_file
 
 let get_info_for_name (name:string) z =
   goto_dir_name "dir" z
   >>= down
-  >>= goto_comp_name name 
+  >>= goto_comp_name name
   >>= down
   >>= print_file
 
@@ -88,7 +88,7 @@ let () =
                   ~doc:"should print the debugging statements"
       in
       if debug then Utils.set_debug () else ();
-      ignore_after_f (loop_txn_noExn d_spec "/simple" ~f:(main trans id name debug))
+      ignore_after_f (loop_txn_noExn d_spec "/Users/katie/Documents/TxForest/example_fs_root/simple" ~f:(main trans id name debug))
     ]
     |> Command.run
 
