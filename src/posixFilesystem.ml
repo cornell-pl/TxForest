@@ -15,8 +15,8 @@
  * - NEEEEEEDDD TO MAKE SURE THAT THE EXAMPLED GIVE GOOD STARTING PATH
  * - check the error handling especially with removing paths and goto and stuff, careful
  * - dummy path seems kinda dangerous, hmmmmmmmmm
- *        - seems it would be good to have enviroment variable for where the
- *          fs should be, for the dummy var
+ *        - rn forcing to use current working directoy, but im not sure what would be
+ #          the best situation here
  *)
 
 open Core
@@ -198,7 +198,9 @@ let sync_path ((fs,p) : t) : t or_fail =
       mk_ok ((), p)
     end
 
-let dummy_path = "/Users/katie/Documents/TxForest/example_fs_root"
+let dummy_path =
+  let potential_root = Filename.concat (Unix.getcwd ()) "example_fs_root" in
+    if exists_h potential_root then potential_root else Filename.root
 
 (*TODO: error handlling*)
 let run_txn ~(f : fs -> 'a or_fail) () : ('a,txError) Core.result =
