@@ -13,12 +13,12 @@
 (*
  * TODO:
  * - NEEEEEEDDD TO MAKE SURE THAT THE EXAMPLED GIVE GOOD STARTING PATH
- * - error handing everywhere
+ * - implement remove
+ * - check the error handling especially with removing paths and goto and stuff, careful
  * - fix the failwith unimplmented
- * - make sure closing files
- * - make the hiddent functions that seem like they couldbe public look like helpers
- * document preconditions
  * - dummy path seems kinda dangerous, hmmmmmmmmm
+ *        - seems it would be good to have enviroment variable for where the
+ *          fs should be, for the dummy var
  *)
 
 open Core
@@ -62,10 +62,14 @@ let is_file_h ( p : path) : bool =
 let remove_file_h ( p : path) : unit =
   Sys.remove p
 
-let remove_dir_h ( p : path) : unit =
-  failwith "remove_dir unimplemented"
+let rec remove_dir_h ( p : path) : unit =
+  let (parent_dir, _) = Filename.split p in
+  let dir_contents = Sys.ls_dir p in
+    Unix.chdir p;
+    List.iter dir_contents ~f:(fun u -> remove_h (Filename.concat p u));
+    Unix.chdir parent_dir;
 
-let remove_h (p:path): unit =
+and remove_h (p:path): unit =
   if is_file_h p then
     remove_file_h p
   else
