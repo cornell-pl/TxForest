@@ -58,14 +58,14 @@ let create (p': path) : t or_fail =
   let%map fs = ZFSAPI.create () |> ZFSAPI.goto p |> convert_result in
     (fs, p')
 
-let make_file ((fs, p) :t) (u: string) :t or_fail =
+let make_file (u: string) ((fs, p) :t)  :t or_fail =
   let (p', u') = getpu p in
   let fs' = if has_child u' fs then remove_child u' fs else Ok fs in
   let%map fs'' = fs' >>= mkfile u' >>= goto_child u' >>= update u >>= up |> convert_result in
     (fs'', p)
 
 
-let make_directory ((fs, p): t) ( new_lst: string list) : t or_fail =
+let make_directory ( new_lst: string list) ((fs, p): t)  : t or_fail =
   let (p', u') = getpu p in
   if has_child u' fs then
     let fs' = goto_child u' fs in
@@ -92,7 +92,7 @@ let make_directory ((fs, p): t) ( new_lst: string list) : t or_fail =
     let%map fs''' = fs'' >>= up |> convert_result in
       (fs''', p)
 
-let add_to_directory ((fs, p): t) (u:string) : t or_fail =
+let add_to_directory (u:string) ((fs, p): t)  : t or_fail =
   let (p', u') = getpu p in
   if has_child u' fs then
     let fs' = goto_child u' fs in
@@ -173,7 +173,7 @@ let run_txn ~f () =
   | Error str ->
     destroy_no_commit fs;
     Error (OpError str)
-  | Ok x -> 
+  | Ok x ->
     if destroy fs
     then Ok x
     else Error TxError

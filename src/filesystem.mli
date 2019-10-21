@@ -7,6 +7,12 @@ open Utils
 
 type fs
 type path = string
+type log = le list
+
+and le =
+  Read of contents * path
+  Write_file of contents * contents * path
+  Write_directoy of contents * contents * path
 
 type contents = Dir of string list | File of string
 
@@ -15,9 +21,12 @@ type t = fs * path
 (*[create p] creates a file system which will be currently focused on p*)
 val create : path -> t or_fail
 
+(*[get_log t] gets the log out of the t*)
+val get_log: t -> log
+
 (*[make_file t u] makes a file at the current path in the file system with
  * content u*)
-val make_file: t -> string -> t or_fail
+val make_file: string ->  t -> t or_fail
 
 (*[make_directory t lst] makes a directory at the current path in the filesystem
  * if the current path is a file this makes a new directory with empty filed for
@@ -25,13 +34,13 @@ val make_file: t -> string -> t or_fail
  * if the current path is a directory this creates an empty file for any file
  * name in lst but not currently in the directory and removes any files not
  * in lst but in the current directory*)
-val make_directory: t -> string list -> t or_fail
+val make_directory: string list -> t -> t or_fail
 
 (*[add_to_directory t u] adds a file with name u to the directory at the current
  * path, if there is a file at the current path it is replaced with a directory
  * with only a file for u in it, if it is a directory then the file is added, this
  * over writes the file if there is a file with filename u in the directory *)
-val add_to_directory: t -> string -> t or_fail
+val add_to_directory: string -> t -> t or_fail
 
 (* val goto_root: t -> t or_fail *)
 
@@ -63,3 +72,6 @@ val loop_txn: f:(fs -> 'a) -> unit -> 'a
 val run_txn: f:(fs -> 'a or_fail) -> unit -> ('a,txError) Core.result
 
 val dummy_path: path
+
+
+

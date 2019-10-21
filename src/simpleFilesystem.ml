@@ -55,21 +55,21 @@ let create (p': path) : t or_fail =
     mk_ok ((fs, ref p'), p')
 
 (*TODO: make this do the checking*)
-let make_file (((fs, working_path), _) :t) (u: string) :t or_fail =
+let make_file (u: string) (((fs, working_path), _) :t)  :t or_fail =
   let stringified_path = !working_path in
   let entry = File u in
   let _ = FS.set fs ~key:stringified_path ~data:entry in
     mk_ok ((fs, working_path), stringified_path)
 
 (*TODO: make this do the checking*)
-let make_directory (((fs, working_path), _): t) ( new_lst: string list) : t or_fail =
+let make_directory ( new_lst: string list)  (((fs, working_path), _): t) : t or_fail =
   let stringified_path = !working_path in
   let entry = (Dir new_lst) in
   let _ = FS.set fs ~key:stringified_path ~data:entry in
     mk_ok ((fs, working_path), stringified_path)
 
 (*TODO: make this do the checking and add the file?*)
-let add_to_directory (((fs, working_path), _): t) (u:string) : t or_fail =
+let add_to_directory (u:string) (((fs, working_path), _): t)  : t or_fail =
   let stringified_path = !working_path in
   let cur_entry = FS.find fs stringified_path in
     match cur_entry with

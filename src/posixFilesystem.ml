@@ -17,6 +17,8 @@
  * - dummy path seems kinda dangerous, hmmmmmmmmm
  *        - rn forcing to use current working directoy, but im not sure what would be
  #          the best situation here
+ * - make a transactional version
+ *    - this should be the thing underling the fs server I think
  *)
 
 open Core
@@ -113,12 +115,12 @@ let create (p: path) : t or_fail =
     mk_ok ((), p)
   end
 
-let make_file ((fs, p) :t) (u: string) :t or_fail =
+let make_file (u: string) ((fs, p) :t)  :t or_fail =
   let%bind _ = check_path_preconditions (fs, p) in
     make_file_h p u;
     mk_ok ((), p)
 
-let make_directory ((fs, p): t) ( new_lst: string list) : t or_fail =
+let make_directory ( new_lst: string list) ((fs, p): t)  : t or_fail =
   let%bind _ = check_path_preconditions (fs, p) in
     if is_file_h p then remove_file_h p;
     if not (exists_h p) then Unix.mkdir ~perm:default_perm p;
@@ -132,7 +134,7 @@ let make_directory ((fs, p): t) ( new_lst: string list) : t or_fail =
       Unix.chdir parent_dir;
       mk_ok ((), p)
 
-let add_to_directory ((fs, p): t) (u:string) : t or_fail =
+let add_to_directory (u:string) ((fs, p): t)  : t or_fail =
   let%bind _ = check_path_preconditions (fs, p) in
     if is_file_h p then remove_file_h p;
     if not (exists_h p) then Unix.mkdir ~perm:default_perm p;
@@ -216,6 +218,5 @@ let loop_txn ~(f : fs -> 'a) () =
   in
     run_txn ~f:apply ();
     Option.value_exn ~message:"loop_txn: Something went horribly wrong" !x
-
 
 
