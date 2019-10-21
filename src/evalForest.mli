@@ -1,4 +1,4 @@
-open Core
+(* open Core
 open Filesystem
 open Utils
 
@@ -47,7 +47,7 @@ type specification =
 
 and 'a fexp = fs -> env -> 'a
 
-and direnv = (path * zipper) Var.Map.t 
+and direnv = (path * zipper) Var.Map.t
 and compenv = string Var.Map.t
 and env = direnv * compenv
 
@@ -58,7 +58,7 @@ and zipper =
     left : node list;
     current : node;
     right: node list;
-  } 
+  }
 
 type t = fs * path * PathSet.t * zipper
 
@@ -103,3 +103,7 @@ val loop_txn_noExn : f:( t -> 'a) -> specification -> string -> unit -> 'a
 val loop_txn : f:( t -> 'a or_fail) -> specification -> string -> unit -> 'a
 
 val run_txn : f:( t -> 'a or_fail) -> specification -> string -> unit -> ('a,txError) Core.result
+ *)
+
+
+ include TxEvalForest

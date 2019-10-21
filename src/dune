@@ -5,7 +5,7 @@
   (libraries core re str)
   (preprocess (pps ppx_deriving.show ppx_deriving.make ppx_jane))
   (private_modules Filesystem )
-  (modules Utils PosixFilesystem SimpleFilesystem Filesystem EvalForest ForestIntf)
+  (modules Utils PosixFilesystem UncommitedPosixFilesystem SimpleFilesystem Filesystem Filesystems TxEvalForest ForestIntf)
 )
 
 ; make add Utils, EvalForest private -> both needed for typing

@@ -3,7 +3,7 @@
  * - Get rid of loop_txn_noExn
  * - Combine FS and path into one construct (since you always use them together anyway)
  * - Maybe make a 'next_or' command/function for comprehensions
- * - Check FS implementations 
+ * - Check FS implementations
  * - Implement Verify
  * - Implement Check
  *)
@@ -46,8 +46,8 @@ type forest_update =
   | Store_Dir of SSet.t
   | Create_Path  [@@deriving show]
 
-type forest_command = 
-  | Nav of forest_navigation 
+type forest_command =
+  | Nav of forest_navigation
   | Update of forest_update  [@@deriving show]
 
 type specification =
@@ -104,10 +104,10 @@ let sync_path ((fs, p, ps, z): t) : t or_fail =
 let eval_forest_navigation c t  : t or_fail =
   let%bind (fs, p, ps, z) = sync_path t in
   match (c,z) with
-  | Down, {current = (env, PathExp (f, s) ); _ } -> 
+  | Down, {current = (env, PathExp (f, s) ); _ } ->
       let u = f fs env in
       if is_dir (fs,p)
-      then 
+      then
         let%map (fs', p') = gotoChild u (fs, p) in
         let z' = make_zipper ~ancestor:z (env, s) in
         (fs', p',PathSet.add ps p', z')
@@ -115,31 +115,31 @@ let eval_forest_navigation c t  : t or_fail =
   | Up, {ancestor = Some(z');_} when is_path z'->
       let%map (fs', p') = pop (fs, p) in
       (fs', p', ps, z')
-  | Into_Pair, {current = (env, DPair(x,s1,s2)); _ } -> 
+  | Into_Pair, {current = (env, DPair(x,s1,s2)); _ } ->
       let ctxt = p,make_zipper (env, s1) in
       let envR = add_to_dirEnv ~key:x ~data:ctxt env in
       let z' = make_zipper ~ancestor:z (env, s1) ~right:[(envR, s2)] in
         mk_ok (fs, p, ps, z')
-  | Into_Comp, {current = (env, Comp(s, x, f)); _ } -> 
+  | Into_Comp, {current = (env, Comp(s, x, f)); _ } ->
       begin
         match f fs env |> Set.to_list with
         | hd :: tl ->
-          let z' = 
-            make_zipper ~ancestor:z 
-            (add_to_compEnv ~key:x ~data:hd env, s) 
+          let z' =
+            make_zipper ~ancestor:z
+            (add_to_compEnv ~key:x ~data:hd env, s)
             ~right:(List.map tl ~f:(fun u -> (add_to_compEnv ~key:x ~data:u env, s)))
           in
           mk_ok (fs, p, ps, z')
         | [] -> mk_err "Into_Comp requires the comprehension to be non-empty"
       end
-  | Into_Opt, {current = (env, Opt s); _ } -> 
+  | Into_Opt, {current = (env, Opt s); _ } ->
       let z' = make_zipper ~ancestor:z (env,s) in
       mk_ok (fs, p, ps, z')
   | Out, {ancestor = Some(z')} when not (is_path z') -> mk_ok (fs, p, ps, z')
   | Next, {ancestor; left; current; right=(new_current::right)}->
       let z' = make_zipper ?ancestor ~left:(current::left) new_current ~right in
       mk_ok (fs, p, ps, z')
-  | Prev, { ancestor; left=(new_current::left); current; right} -> 
+  | Prev, { ancestor; left=(new_current::left); current; right} ->
       let z' = make_zipper ?ancestor ~left new_current ~right:(current :: right) in
       mk_ok (fs, p, ps, z')
 
@@ -157,13 +157,13 @@ let eval_forest_update c t : t or_fail =
   let%bind (fs, p, ps, z) = sync_path t in
   match c,z with
   | Store_File u, {current = (_, File); _ } ->
-      let%map (fs', p') = make_file (fs, p) u in
+      let%map (fs', p') = make_file u (fs, p) in
       (fs', p', ps, z)
-  | Store_Dir s, {current = (_, Dir); _ } -> 
-      let%map (fs', p') = make_directory (fs, p) (Set.to_list s) in
+  | Store_Dir s, {current = (_, Dir); _ } ->
+      let%map (fs', p') = make_directory (Set.to_list s) (fs, p) in
       (fs', p', ps, z)
-  | Create_Path, {current = (env, PathExp (f,s)); _ } -> 
-      let%map (fs', p') = add_to_directory (fs, p) (f fs env) in
+  | Create_Path, {current = (env, PathExp (f,s)); _ } ->
+      let%map (fs', p') = add_to_directory (f fs env) (fs, p)  in
       (fs', p', ps, z)
 
   (* Nicer Error handling *)
@@ -181,13 +181,13 @@ let fetch t : fetch_result or_fail =
   let%bind (fs, p, ps, z) = sync_path t in
   match z with
   | {current = (_, File); _ } ->
-    begin 
+    begin
       match Filesystem.fetch (fs, p) with
       | File u -> FileRep u |> mk_ok
       | _ -> mk_err "File expected, but node at path %s is not a file" p
     end
-  | {current = (_, Dir); _ } -> 
-    begin 
+  | {current = (_, Dir); _ } ->
+    begin
       match Filesystem.fetch (fs, p) with
       | Dir l -> String.Set.of_list l |> DirRep |> mk_ok
       | _ -> mk_err "Directory expected, but node at path %s is not a directory" p
@@ -199,7 +199,7 @@ let fetch t : fetch_result or_fail =
   | {current = (env, Pred f); _ } ->  PredRep (f fs env) |> mk_ok
   | {current = (_, Null); _ } -> NullRep |> mk_ok
 
-let print t = 
+let print t =
     match fetch t with
     | Ok fr -> print_fetch_result fr
     | Error u -> Printf.printf "print: %s\n" u
@@ -208,7 +208,7 @@ let print_ret = f_ret ~f:print
 
 let verify t = failwith "TODO: Implement"
 
-(* TODO: 
+(* TODO:
  *  If we keep 'Check' for users, then we should consider advantages/disadvantages
  *  of just trying to run it and seeing if we get an error
  *)
@@ -233,6 +233,6 @@ let run_txn ~(f:t->'a or_fail) (s:specification) (p:string) () =
     | Error _ -> failwithf "run_txn: path %s does not exist" p ()
     | Ok (fs', p') ->
       (fs', p', PathSet.singleton p', make_zipper (empty_env, s))
-      |> f 
+      |> f
   in
   run_txn ~f:f_to_z ()

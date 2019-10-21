@@ -1,5 +1,6 @@
 (* TODO:
  * - Add Check and Verify and decide what needs to be exposed to make that useful
+ * - make a transactional wrapper
  *)
 
 
@@ -9,7 +10,7 @@
  * - Var x -> 'x_spec'
  * - File -> File
  * - Option ast -> Opt [[ast]]
- * - Directory asts -> <x1 : s1, <... <xn-1: sn-1, sn> 
+ * - Directory asts -> <x1 : s1, <... <xn-1: sn-1, sn>
  * -- We should perhaps have a 'dummy' spec at the end instead, and that way everything
       can more correctly be referred to by name. Could also be done with metadata.
  * -- 'goto x' should work
@@ -18,7 +19,7 @@
  * -- Some fetch that gets name of var?
  * -- Up needs to go to above directory (or out?)
  * -- No 'store' available
- * - Comprehension (typ,ast,qual) -> 
+ * - Comprehension (typ,ast,qual) ->
       < SOME_UNIQ_ID : Dir, Comp ([[Ast]], Var(s?)from qual, fun from quals) >
  * -- Down goes to first Comp child (if Comp or Dir)
  * -- Skip 'Goto x'
@@ -47,7 +48,7 @@ type fetch_rep = EvalForest.fetch_rep =
   | PairRep of Var.t
   | CompRep of SSet.t
   | OptRep of bool
-  | PredRep of bool 
+  | PredRep of bool
   | NullRep [@@deriving show]
 
 type specification = EvalForest.specification =
@@ -75,7 +76,7 @@ let print = EvalForest.print
 let print_ret = EvalForest.print_ret
 let debug_print = EvalForest.debug_print
 
-(* TODO: Figure out how to properly expose this module type 
+(* TODO: Figure out how to properly expose this module type
 module type ForestRaw = sig
   (** Basically as seen in TxForest paper *)
 
@@ -104,17 +105,17 @@ module type ForestRaw = sig
   val fetch_file : t -> string out
 
   val fetch_dir : t -> string list out
-  
+
   val fetch_path : t -> name out
-  
+
   val fetch_pair : t -> Var.t out
-  
+
   val fetch_comp : t -> name list out
-  
+
   val fetch_opt : t -> bool out
-  
+
   val fetch_pred: t -> bool out
-  
+
 
   (* Other *)
 
@@ -152,36 +153,36 @@ module TxForestCore = struct
   let fetch = fetch
 
   open Core.Result
-  let fetch_file t = fetch t >>= function 
-  | FileRep u -> mk_ok u 
+  let fetch_file t = fetch t >>= function
+  | FileRep u -> mk_ok u
   | _ -> mk_err  "Fetch_file can only be used at a file node"
 
-  let fetch_dir t = fetch t >>= function 
+  let fetch_dir t = fetch t >>= function
   | DirRep l -> mk_ok l
   | _ -> mk_err  "Fetch_dir can only be used at a dir node"
-  
-  let fetch_path t = fetch t >>= function 
-  | PathRep u -> mk_ok u 
+
+  let fetch_path t = fetch t >>= function
+  | PathRep u -> mk_ok u
   | _ -> mk_err  "Fetch_path can only be used at a path node"
-  
-  let fetch_pair t = fetch t >>= function 
+
+  let fetch_pair t = fetch t >>= function
   | PairRep x -> mk_ok x
   | _ -> mk_err  "Fetch_pair can only be used at a pair node"
-  
-  let fetch_comp t = fetch t >>= function 
+
+  let fetch_comp t = fetch t >>= function
   | CompRep l -> mk_ok l
   | _ -> mk_err  "Fetch_comp can only be used at a comp node"
-  
-  let fetch_opt t = fetch t >>= function 
-  | OptRep b -> mk_ok b 
-  | _ -> mk_err  "Fetch_opt can only be used at a opt node"
-  
-  let fetch_pred t = fetch t >>= function 
-  | PredRep b -> mk_ok b 
-  | _ -> mk_err  "Fetch_pred can only be used at a pred node"
-  
 
-  let is_null t = fetch t >>| function 
+  let fetch_opt t = fetch t >>= function
+  | OptRep b -> mk_ok b
+  | _ -> mk_err  "Fetch_opt can only be used at a opt node"
+
+  let fetch_pred t = fetch t >>= function
+  | PredRep b -> mk_ok b
+  | _ -> mk_err  "Fetch_pred can only be used at a pred node"
+
+
+  let is_null t = fetch t >>| function
   | NullRep -> true
   | _ -> false
 
@@ -193,7 +194,7 @@ module TxForestCore = struct
   module Derived  = struct
     open Result.Let_syntax
     (* Derived Navigations *)
-    let goto_comp_pos pos t = 
+    let goto_comp_pos pos t =
       let rec keep_going pos t =
         if pos > 0
         then next t >>= keep_going (pos-1)
@@ -201,14 +202,14 @@ module TxForestCore = struct
       in
         into_comp t >>= keep_going pos
 
-    let goto_comp_name u t = 
+    let goto_comp_name u t =
       let%bind l = fetch_comp t >>| Set.to_list in
       let o = Core.List.findi ~f:(fun _ -> String.equal u) l in
       let%bind (i,_) = Result.of_option o ~error:(Printf.sprintf "%s was not in comprehension" u) in
       goto_comp_pos i t
-      
 
-    let goto_dir_pos pos t = 
+
+    let goto_dir_pos pos t =
       let rec keep_going pos t =
         if pos > 0
         then next t >>= into_pair >>= keep_going (pos-1)
@@ -249,7 +250,7 @@ module TxForestCoreExn = struct
   let create_path = Fn.compose Result.ok_or_failwith create_path
 
   (* Fetches *)
-  let fetch = Fn.compose Result.ok_or_failwith fetch  
+  let fetch = Fn.compose Result.ok_or_failwith fetch
 
   let fetch_file = Fn.compose Result.ok_or_failwith fetch_file
   let fetch_dir = Fn.compose Result.ok_or_failwith fetch_dir
@@ -268,7 +269,7 @@ module TxForestCoreExn = struct
   module Derived  = struct
     open Result.Let_syntax
     (* Derived Navigations *)
-    let goto_comp_pos pos t = 
+    let goto_comp_pos pos t =
       let rec keep_going pos t =
         if pos > 0
         then next t |> keep_going (pos-1)
@@ -276,13 +277,13 @@ module TxForestCoreExn = struct
       in
         into_comp t |> keep_going pos
 
-    let goto_comp_name u t = 
+    let goto_comp_name u t =
       let l = fetch_comp t |> Set.to_list in
       Core.List.findi ~f:(fun _ -> String.equal u) l
       |> Option.value_exn ~message:(Printf.sprintf "%s was not in comprehension" u)
       |> fun (i,_) -> goto_comp_pos i t
 
-    let goto_dir_pos pos t = 
+    let goto_dir_pos pos t =
       let rec keep_going pos t =
         if pos > 0
         then next t |> into_pair |> keep_going (pos-1)
@@ -311,7 +312,7 @@ module TxForestS = struct
 
   open Result.Let_syntax
 
-  type fetch_result = 
+  type fetch_result =
   | SFileRep of string
   | SDirRep of SSet.t
   | SPathRep of name
@@ -334,8 +335,8 @@ module TxForestS = struct
 
   (* TODO: Do this in evalForest and avoid computation *)
   let sitch t =
-    let open TxForestCore in 
-    let%map s = 
+    let open TxForestCore in
+    let%map s =
     match%map fetch t with
     | PairRep "dir'" -> SDirComp
     | PairRep "this" -> SPred
@@ -347,7 +348,7 @@ module TxForestS = struct
     | DirRep _ -> SDirS
     | PredRep _ -> SPredS
     | NullRep -> SNull
-    in 
+    in
     d "Got sitch %s from:" (show_situation s);
     s
 
@@ -355,27 +356,27 @@ module TxForestS = struct
     if is_ok t then t >>= fok else ferr t
 
   let out_or_up t =
-    let open TxForestCore in 
+    let open TxForestCore in
     up t |> do_err  ~ferr:(fun _ -> out t) ~fok:mk_ok
 
   (* Standard Navigations *)
-  let down t = 
+  let down t =
     let open TxForestCore in
     match%bind sitch t with
     | SDirComp -> into_pair t >>= next >>= into_comp
-    | SPred 
+    | SPred
     | SDir -> into_pair t
     | SPath -> TxForestCore.down t
     | SOpt -> into_opt t
     | SComp -> into_comp t
     | _ -> mk_err "Down is illegal at File, Dir, or Pred nodes"
-    
+
   (* TODO: Use check or some other aux function when implemented *)
-  let up t = 
+  let up t =
     let rec walk_up_dir t =
-      TxForestCore.out t 
+      TxForestCore.out t
       |> do_err ~ferr:(ignore_ret t)
-        ~fok:(fun t' -> 
+        ~fok:(fun t' ->
           match%bind sitch t' with
           | SDir
           | SDirComp -> walk_up_dir t'
@@ -383,23 +384,23 @@ module TxForestS = struct
         )
     in
     let open TxForestCore in
-    let%bind t' = out_or_up t in 
+    let%bind t' = out_or_up t in
     match%bind sitch t' with
     | SDir -> walk_up_dir t'
-    | SComp -> 
+    | SComp ->
       let t'' = out t' in
-      do_err t'' ~ferr:(ignore_ret t') 
+      do_err t'' ~ferr:(ignore_ret t')
         ~fok:(fun t' -> match%bind sitch t' with | SDirComp -> mk_ok t' | _ -> t'')
-    | SDirComp 
-    | SPred 
+    | SDirComp
+    | SPred
     | SPath
     | SOpt -> mk_ok t'
     | _ -> mk_err "It should be impossible to still be in File, Dir, or Pred nodes"
 
-  let next t = 
-    let%bind t' = out_or_up t in 
+  let next t =
+    let%bind t' = out_or_up t in
     match%bind sitch t' with
-    | SDir -> 
+    | SDir ->
         let%bind t'' = TxForestCore.next t >>= down in
         let%bind b = TxForestCore.is_null t in
         if b then mk_err "Walked next to a Null node" else mk_ok t''
@@ -407,8 +408,8 @@ module TxForestS = struct
     | _ -> TxForestCore.next t
 
 
-  let prev t = 
-    let%bind t' = out_or_up t in 
+  let prev t =
+    let%bind t' = out_or_up t in
     match%bind sitch t' with
     | SDir -> TxForestCore.prev t'
     | _ -> TxForestCore.prev t
@@ -416,18 +417,18 @@ module TxForestS = struct
 
   (* Updates *)
   let store_file u = eval_forest_command (Update (Store_File u))
-  let store_dir s t = 
+  let store_dir s t =
     let open TxForestCore in
     match%bind sitch t with
-    | SDirComp -> 
+    | SDirComp ->
         let%bind t' = into_pair t in
         let dir = fetch_dir t' in
         do_err dir ~ferr:(fun _ -> TxForestCore.store_dir s t' >>= out)
         ~fok:(fun dir ->
           let%bind t' = next t' in
           let%bind comp = fetch_comp t' in
-          let s' = 
-            Set.filter dir ~f:(fun u -> not (Set.exists ~f:(String.equal u) comp)) 
+          let s' =
+            Set.filter dir ~f:(fun u -> not (Set.exists ~f:(String.equal u) comp))
           in
           prev t' >>= store_dir (Set.union s s') >>= out
         )
@@ -445,58 +446,58 @@ module TxForestS = struct
     | PredRep b -> SPredRep b
     | _ -> failwith "Convert: Something deeply unexpected happened..."
 
-  let fetch t =       
+  let fetch t =
     let rec get_names acc t =
       let open TxForestCore in
       let%bind b = is_null t in
       if b then mk_ok acc
-      else 
+      else
         let%bind u = fetch_pair t in
         d "%s" u;
-        do_err TxForestCore.(into_pair t >>= next) ~ferr:(ignore_ret acc) 
+        do_err TxForestCore.(into_pair t >>= next) ~ferr:(ignore_ret acc)
           ~fok:(get_names (String.Set.add acc u))
     in
     match%bind sitch t with
     | SDirComp
-    | SPred -> 
-        TxForestCore.into_pair t >>= TxForestCore.next 
+    | SPred ->
+        TxForestCore.into_pair t >>= TxForestCore.next
         >>= TxForestCore.fetch >>| convert
     | SDir -> get_names String.Set.empty t >>| fun s -> SDirRep s
     | SPath
     | SOpt
     | SComp
     | SFile -> TxForestCore.fetch t >>| convert
-    | SDirS 
-    | SPredS 
+    | SDirS
+    | SPredS
     | SNull -> mk_err "Fetch: It should be impossible to get to a Pred, Null, or Dir node"
 
   let print_res f = Printf.printf "%s \n"  (show_fetch_result f)
   let fetch_n_print t = fetch t |> Core.Result.iter ~f:print_res
 
-  let fetch_file t = fetch t >>= function 
-  | SFileRep u -> mk_ok u 
+  let fetch_file t = fetch t >>= function
+  | SFileRep u -> mk_ok u
   | _ -> mk_err  "Fetch_file can only be used at a file node"
 
-  let fetch_dir t = fetch t >>= function 
+  let fetch_dir t = fetch t >>= function
   | SDirRep l -> mk_ok l
   | _ -> mk_err  "Fetch_dir can only be used at a directory node"
-  
-  let fetch_path t = fetch t >>= function 
-  | SPathRep u -> mk_ok u 
+
+  let fetch_path t = fetch t >>= function
+  | SPathRep u -> mk_ok u
   | _ -> mk_err  "Fetch_path can only be used at a path node"
-  
-  let fetch_comp t = fetch t >>= function 
+
+  let fetch_comp t = fetch t >>= function
   | SCompRep l -> mk_ok l
   | _ -> mk_err  "Fetch_comp can only be used at a comprehension node"
-  
-  let fetch_opt t = fetch t >>= function 
-  | SOptRep b -> mk_ok b 
+
+  let fetch_opt t = fetch t >>= function
+  | SOptRep b -> mk_ok b
   | _ -> mk_err  "Fetch_opt can only be used at a opt node"
-  
-  let fetch_pred t = fetch t >>= function 
-  | SPredRep b -> mk_ok b 
+
+  let fetch_pred t = fetch t >>= function
+  | SPredRep b -> mk_ok b
   | _ -> mk_err  "Fetch_pred can only be used at a predicate node"
-  
+
   (* Other *)
 
   let verify = verify
@@ -512,7 +513,7 @@ module TxForestS = struct
       in
         down t >>= keep_going pos
 
-    let goto_comp_name name t = 
+    let goto_comp_name name t =
       let%bind l = fetch_comp t >>| Set.to_list in
       let o = Core.List.findi ~f:(fun _ -> String.equal name) l in
       let%bind (i,_) = Result.of_option o ~error:(Printf.sprintf "%s was not in comprehension" name) in
@@ -526,9 +527,9 @@ module TxForestS = struct
       | NullRep -> mk_err "%s is not in this directory specification" u
       | _ -> mk_err "Goto can only be used in a directory"
 
-    let goto_name name t = 
+    let goto_name name t =
       match%bind fetch t with
-      | SDirRep _ -> goto name t 
+      | SDirRep _ -> goto name t
       | SCompRep _ -> goto_comp_name name t
       | _ -> mk_err "Goto_name is only defined on directories and comprehensions"
 
@@ -584,13 +585,13 @@ let get_var map var =
   Map.find map var
   |> Option.value_exn ~message:(Printf.sprintf "'%s' is expected, but unbound" var)
 
-let regexp_match_from_string reg str = 
-  try 
+let regexp_match_from_string reg str =
+  try
     let _ = Str.search_forward (Str.regexp reg) str 0 in
     true
   with Not_found | Not_found_s _ -> false [@@warning "-3"]
 
-let glob_match_from_string reg str = 
+let glob_match_from_string reg str =
   try
     let _ = Re.exec (Re.compile (Re.Glob.glob reg)) str in
     true
