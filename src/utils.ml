@@ -4,8 +4,8 @@ open Core
 module Var = String
 module PathSet = String.Set
 module SSet = struct
-  type t = String.Set.t 
-  
+  type t = String.Set.t
+
   let show s = String.Set.to_list s |> String.concat ~sep:"," |> fun s -> "{" ^ s ^ "}"
   let pp fmt s = Format.fprintf fmt "%S" (show s)
 end
@@ -18,6 +18,17 @@ type txError =
 type name = string [@@deriving show]
 
 type 'a or_fail = ('a,string) Core.result
+
+type contents = Dir of string list | File of string
+
+type path = string
+
+type le =
+  | Read of contents * path
+  | Write_file of contents * contents * path
+  | Write_directoy of contents * contents * path
+
+type log = le list
 
 (* Helper functions *)
 let debug = ref false

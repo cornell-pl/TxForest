@@ -22,8 +22,6 @@ open Utils
 
 (*note: the filesytem is the one above this path*)
 type fs = ZFSAPI.t
-type path = string
-type contents = Dir of string list | File of string
 
 type t = fs * path
 
@@ -51,6 +49,11 @@ let (>>*) fs f =
 
 
 (* ----------   Exposed Functions ---------- *)
+
+let get_log t = []
+
+let clear_log (((fs, working_path, l), p, l) :t) : t or_fail =
+  mk_ok t
 
 
 let create (p': path) : t or_fail =

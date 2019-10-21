@@ -32,8 +32,6 @@ open Unix -> uses the unix in Core, same ^*)
 
 (*note: the filesytem is the one above this path*)
 type fs = unit
-type path = string
-type contents = Dir of string list | File of string
 
 type t = fs * path
 
@@ -103,6 +101,11 @@ let check_path_preconditions ((fs, p): t) :t or_fail=
 
 
 (* ----------   Exposed Functions ---------- *)
+
+let get_log t = []
+
+let clear_log (((fs, working_path, l), p, l) :t) : t or_fail =
+  mk_ok t
 
 let create (p: path) : t or_fail =
   let (parent_dir, _) = Filename.split p in

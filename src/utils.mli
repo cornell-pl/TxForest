@@ -3,8 +3,8 @@ open Core
 module Var = Core.String
 module PathSet = Core.String.Set
 module SSet : sig
-  type t = String.Set.t 
-  
+  type t = String.Set.t
+
   val show : t -> string
   val pp : Format.formatter -> t -> unit
 end
@@ -14,6 +14,26 @@ type txError =
   | OpError of string
 
 type name = string [@@deriving show]
+
+type contents = Dir of string list | File of string
+
+type path = string
+
+(* log_entry
+ * Read (past tense) contents at path
+ * Wrote second contents at path where there use to be first contents
+ *)
+type le =
+  | Read of contents * path
+  | Write_file of contents * contents * path
+  | Write_directoy of contents * contents * path
+
+(* local log
+ * list of things that I have done and would liek to commit
+ * note: we dont have timestamps here since, none of these actions have
+ * been commited yet!
+ *)
+type log = le list
 
 type 'a or_fail = ('a, string) Core.result
 

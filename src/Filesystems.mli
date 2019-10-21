@@ -4,15 +4,6 @@ open Utils
 
 module type Filesystem = sig
   type fs
-  type path = string
-  type log = le list
-
-  and le =
-    | Read of contents * path
-    | Write_file of contents * contents * path
-    | Write_directoy of contents * contents * path
-
-  and contents = Dir of string list | File of string
 
   type t = fs * path
 
@@ -21,6 +12,9 @@ module type Filesystem = sig
 
   (*[get_log t] gets the log out of the t*)
   val get_log: t -> log
+
+  (*[clear_log  t] clears the log in t*)
+  val clear_log: t -> t or_fail
 
   (*[make_file t u] makes a file at the current path in the file system with
    * content u*)

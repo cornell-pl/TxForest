@@ -23,8 +23,6 @@ open Utils
 module FS = Hashtbl.Make(String)
 (*note: the filesytem is the one above this path*)
 
-type contents = Dir of string list | File of string | Rem
-type path = string
 
 (*
  * contents that have been read or writen,
@@ -33,12 +31,6 @@ type path = string
  *)
 type fs = contents FS.t * path ref * log
 
-and log = le list
-
-and le =
-  Read of contents * path
-  Write_file of contents * contents * path
-  Write_directoy of contents * contents * path
 
 type t = fs * path
 

@@ -23,8 +23,6 @@ open Utils
 module FS = Hashtbl.Make(String)
 (*note: the filesytem is the one above this path*)
 
-type contents = Dir of string list | File of string
-type path = string
 type fs = contents FS.t * path ref
 
 type t = fs * path
@@ -41,6 +39,10 @@ let string_path_to_list_path (p: string ) : string list =
 
 (* ----------   Exposed Functions ---------- *)
 
+let get_log t = []
+
+let clear_log (((fs, working_path, l), p, l) :t) : t or_fail =
+  mk_ok t
 
 let create (p': path) : t or_fail =
   let fs = FS.create ~growth_allowed:true () in
