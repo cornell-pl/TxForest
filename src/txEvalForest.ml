@@ -5,14 +5,13 @@
 open Core
 open Result
 open Result.Let_syntax
-open Filesystem
 open Filesystems
 open Utils
 
 
 (* Types *)
-type fs = Filesystem.fs
-type path = Filesystem.path
+type fs = TempFS.fs
+type path = string
 
 type fetch_rep =
   | FileRep of string
@@ -73,7 +72,7 @@ and ctxt = env * path * PathSet.t * zipper
 
 
 (*extra types not in the mli*)
-and contents = Filesystem.contents
+and contents = Filesystems.contents
 
 
 (* log_entry
@@ -81,9 +80,9 @@ and contents = Filesystem.contents
  * Wrote second contents at path where there use to be first contents
  *)
 and le =
-  Read of contents * path
-  Write_file of contents * contents * path
-  Write_directoy of contents * contents * path
+  | Read of contents * path
+  | Write_file of contents * contents * path
+  | Write_directoy of contents * contents * path
 
 (* timestamp
  *)

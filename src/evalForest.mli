@@ -1,10 +1,10 @@
 open Core
-open Filesystem
+open Filesystems
 open Utils
 
 (* Types *)
-type fs = Filesystem.fs
-type path = Filesystem.path
+type fs
+type path = string
 
 type fetch_rep =
   | FileRep of string
@@ -60,7 +60,7 @@ and zipper =
     right: node list;
   }
 
-type t = fs * path * PathSet.t * zipper
+type t
 
 val print_fetch_result : fetch_result -> unit
 
