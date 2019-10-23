@@ -41,7 +41,7 @@ let string_path_to_list_path (p: string ) : string list =
 
 let get_log t = []
 
-let clear_log (((fs, working_path, l), p, l) :t) : t or_fail =
+let clear_log (t:t) : t or_fail =
   mk_ok t
 
 let create (p': path) : t or_fail =

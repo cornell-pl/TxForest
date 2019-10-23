@@ -23,13 +23,14 @@ open Utils
 module FS = Hashtbl.Make(String)
 (*note: the filesytem is the one above this path*)
 
+type fs_map = (contents option) FS.t
 
 (*
  * contents that have been read or writen,
  * paths that have been removed from the fs
  * where we currently are in the fs
  *)
-type fs = contents FS.t * path ref * log
+type fs = fs_map * path ref * log
 
 
 type t = fs * path
@@ -45,11 +46,11 @@ let string_path_to_list_path (p: string ) : string list =
     List.rev path_peices
 
 
-let exists_helper (fs: fs) (p: path) : bool =
+let exists_helper (fs: fs_map) (p: path) : bool =
   if FS.mem fs p then
     (*in the cache of the file system*)
     match FS.find_exn fs p with
-    | Rem -> false
+    | None -> false
     | _ -> true
   else
     (*not in the cache of the file system, check if its in the real fs*)
@@ -57,11 +58,11 @@ let exists_helper (fs: fs) (p: path) : bool =
     | `Yes -> true
     | _ -> false
 
-let is_file_helper (fs: fs) (p : path) : bool =
+let is_file_helper (fs: fs_map) (p : path) : bool =
   if FS.mem fs p then
     (*in the cache of the file system*)
     match FS.find_exn fs p with
-    | File _ -> true
+    | Some(File _) -> true
     | _ -> false
   else
     (*not in the cache of the file system, check if its in the real fs*)
@@ -69,11 +70,11 @@ let is_file_helper (fs: fs) (p : path) : bool =
     | `Yes -> true
     | _ -> false
 
-let is_dir_helper (fs: fs) (p : path) : bool =
+let is_dir_helper (fs: fs_map) (p : path) : bool =
   if FS.mem fs p then
     (*in the cache of the file system*)
     match FS.find_exn fs p with
-    | Dir _ -> true
+    | Some(Dir _) -> true
     | _ -> false
   else
     (*not in the cache of the file system, check if its in the real fs*)
@@ -81,26 +82,26 @@ let is_dir_helper (fs: fs) (p : path) : bool =
     | `Yes -> true
     | _ -> false
 
-let check_path_preconditions (((fs, working_path), p, _): t) :t or_fail=
+let check_path_preconditions (((fs, working_path, l), p): t) :t or_fail=
   let (parent_dir, _) = Filename.split p in
-    if not(exists_helper parent_dir) then
+    if not(exists_helper fs parent_dir) then
       mk_err "path precondition check - parent of curent path ( %s ) does not exist" p
-    else if not (is_dir_helper parent_dir) then
+    else if not (is_dir_helper fs parent_dir) then
       mk_err "path precondition check - parent of curent path ( %s ) is not a drectory" p
     else if (!working_path) <> parent_dir then
-      mk_err "path precondition check - working directory ( %s ) does not match parent of current path ( %s )" working_dir p
+      mk_err "path precondition check - working directory ( %s ) does not match parent of current path ( %s )" (!working_path) p
     else
-      mk_ok ((fs, working_path), p)
+      mk_ok ((fs, working_path, l), p)
 
-let remove_file_helper (fs: fs) ( p : path) : unit =
-  FS.set fs ~key:p ~data:Rem
+let remove_file_helper (fs: fs_map) ( p : path) : unit =
+  FS.set fs ~key:p ~data:None
 
-let rec remove_dir_helper (fs: fs) (p : path) : unit =
+let rec remove_dir_helper (fs: fs_map) (p : path) : unit =
   begin
   if FS.mem fs p then
     (*in the cache of the file system*)
     match FS.find_exn fs p with
-    | Dir dir_contents -> begin
+    | Some(Dir dir_contents) -> begin
       List.iter dir_contents ~f:(fun u -> remove_helper fs (Filename.concat p u))
     end
     | _ -> failwith "precondition of remove dir violated"
@@ -109,33 +110,35 @@ let rec remove_dir_helper (fs: fs) (p : path) : unit =
     let dir_contents = Sys.ls_dir p in
       List.iter dir_contents ~f:(fun u -> remove_helper fs (Filename.concat p u));
   end;
-  FS.set fs ~key:p ~data:Rem
+  FS.set fs ~key:p ~data:None
 
-and remove_helper (fs: fs) (p:path): unit =
+and remove_helper (fs: fs_map) (p:path): unit =
   if is_file_helper fs p then
     remove_file_helper fs p
   else
     remove_dir_helper fs p
 
-let make_file_helper (fs: fs) (p:path) (u: string) : unit =
-  FS.set fs ~key:p ~data:(File u)
+let make_file_helper (fs: fs_map) (p:path) (u: string) : unit =
+  FS.set fs ~key:p ~data:(Some (File u))
 
-let fetch_helper (fs: fs) (p:path): contents =
+let fetch_helper (fs: fs_map) (p:path): contents =
   if FS.mem fs p then
     (*in the cache of the file system*)
-    FS.find_exn fs p
+    match FS.find_exn fs p with
+    | Some c -> c
+    | _ -> failwith "fetch: path does not exist"
   else
     (*not in the cache of the file system, check if its in the real fs*)
     if is_dir_helper fs p then
       let dir_contents = Sys.ls_dir p in
       let entry = Dir dir_contents in
-        FS.set fs ~key:p ~data:entry; entry
+        FS.set fs ~key:p ~data:(Some entry); entry
     else
       let file_contents = In_channel.read_all p in
       let entry = File file_contents in
-        FS.set fs ~key:p ~data:entry; entry
+        FS.set fs ~key:p ~data:(Some entry); entry
 
-let fetch_dir_helper (fs: fs) (p:path): string list =
+let fetch_dir_helper (fs: fs_map) (p:path): string list =
   match fetch_helper fs p with
   | Dir lst -> lst
   | _ -> failwith "fetch_dir_helper precondition violated"
@@ -145,7 +148,7 @@ let fetch_dir_helper (fs: fs) (p:path): string list =
 
 
 let create (p': path) : t or_fail =
-  let (parent_dir, _) = Filename.split p in
+  let (parent_dir, _) = Filename.split p' in
   let fs = FS.create ~growth_allowed:true () in
 (*     FS.set fs ~key:"/simple" ~data:(Dir ["index.txt";"dir"]);
     FS.set fs ~key:"/simple/index.txt" ~data:(File "a\nb\nc\nd");
@@ -155,51 +158,51 @@ let create (p': path) : t or_fail =
     FS.set fs ~key:"/simple/dir/c" ~data:(File "carrot");
     FS.set fs ~key:"/simple/dir/d" ~data:(File "dragon fruit");
     FS.set fs ~key:"/simple/dir/e" ~data:(File "eggplant"); *)
-    mk_ok ((fs, ref parent_dir, [])  p')
+    mk_ok ((fs, ref parent_dir, []),  p')
 
 
 (*[get_log t] gets the log out of the t*)
-let get_log (((fs, working_path, l), p, l) :t) : log = l
+let get_log (((fs, working_path, l), p) :t) : log = l
 
-let clear_log (((fs, working_path, l), p, l) :t) : t or_fail =
+let clear_log (((fs, working_path, l), p) :t) : t or_fail =
   mk_ok ((fs, working_path, []), p)
 
 let make_file (u: string) (((fs, working_path, l), p) :t)  :t or_fail =
-  let%bind _ = check_path_preconditions ((fs, working_path), p) in
-  let l' = (Write_file (File "") (File u) p) in
+  let%bind _ = check_path_preconditions ((fs, working_path, l), p) in
+  let l' = (Write_file (File "", File u, p) ) :: l in
     if is_dir_helper fs p then remove_dir_helper fs p;
     make_file_helper fs p u;
       mk_ok ((fs, working_path, l'), p)
 
 (*TODO: make this do the checking*)
-let make_directory ( new_lst: string list) (((fs, working_path), p, l): t)  : t or_fail =
-  let%bind _ = check_path_preconditions ((fs, working_path), p) in
-  let l' = (Write_directoy (Dir []) (Dir new_lst) p) in
-    if is_file_helper p then remove_file_helper p;
+let make_directory ( new_lst: string list) (((fs, working_path, l), p): t)  : t or_fail =
+  let%bind _ = check_path_preconditions ((fs, working_path, l), p) in
+  let l' = (Write_directoy (Dir [], Dir new_lst, p)) :: l in
+    if is_file_helper fs p then remove_file_helper fs p;
     let cur_lst = fetch_dir_helper fs p in
     let (rem_lst: string list) = List.filter cur_lst ~f:(fun u -> not (List.mem new_lst u ~equal:String.equal)) in
     let (add_lst: string list) = List.filter new_lst ~f:(fun u -> not (List.mem cur_lst u ~equal:String.equal)) in
       List.iter rem_lst ~f:(fun u -> remove_helper fs (Filename.concat p u));
       List.iter add_lst ~f:(fun u -> let _ = make_file_helper fs (Filename.concat p u) "" in ());
-      FS.set fs ~key:p ~data:(Dir new_lst);
+      FS.set fs ~key:p ~data:(Some (Dir new_lst));
       mk_ok ((fs, working_path, l'), p)
 
 (*TODO: make this do the checking and add the file?*)
 let add_to_directory (u:string) (((fs, working_path, l), p): t)  : t or_fail =
-  let%bind _ = check_path_preconditions ((fs, working_path), p) in
-    if is_file_helper p then remove_file_helper p;
-    if not (exists_helper fs p) then FS.set fs ~key:p ~data:(Dir []);
+  let%bind _ = check_path_preconditions ((fs, working_path, l), p) in
+    if is_file_helper fs p then remove_file_helper fs p;
+    if not (exists_helper fs p) then FS.set fs ~key:p ~data:(Some (Dir []));
     let lst = fetch_dir_helper fs p in
     let new_lst = List.dedup_and_sort ~compare:String.compare (u::lst) in
-    let l' = (Write_directoy (Dir lst) (Dir new_lst) p) in
-      FS.set fs ~key:p ~data:(Dir new_lst);
+    let l' = (Write_directoy ((Dir lst), (Dir new_lst), p)) :: l in
+      FS.set fs ~key:p ~data:(Some (Dir new_lst));
       if is_dir_helper fs (Filename.concat p u) then remove_dir_helper fs (Filename.concat p u);
       make_file_helper fs (Filename.concat p u) "";
         mk_ok ((fs, working_path, l'), p)
 
 (*TODO: make this do the checking*)
 let gotoChild (u: string) (((fs, working_path, l), p):t) : t or_fail =
-  let%bind _ = check_path_preconditions ((fs, working_path), p) in
+  let%bind _ = check_path_preconditions ((fs, working_path, l), p) in
     if not (exists_helper fs p) then
       mk_err "gotochild - parent of new path ( %s ) does not exist" (Filename.concat p u)
     else if not (is_dir_helper fs p) then
@@ -207,6 +210,7 @@ let gotoChild (u: string) (((fs, working_path, l), p):t) : t or_fail =
     else begin
       working_path := p;
       mk_ok ((fs, working_path, l), (Filename.concat p u))
+    end
 
 (*TODO: make this do the checking*)
 let goto (new_p:string) (((fs, working_path, l),p):t) : t or_fail =
@@ -218,10 +222,11 @@ let goto (new_p:string) (((fs, working_path, l),p):t) : t or_fail =
     else begin
       working_path := parent_dir;
       mk_ok ((fs, working_path, l), new_p)
+    end
 
 (*TODO: make this do the checking*)
 let pop ( ((fs, working_path, l), p) :t) : t or_fail =
-  let%bind _ = check_path_preconditions ((fs, working_path), p) in
+  let%bind _ = check_path_preconditions ((fs, working_path, l), p) in
   let (parent_dir, _) = Filename.split p in
   let (parent_parent_dir, _) = Filename.split parent_dir in
     working_path := parent_parent_dir;
@@ -232,7 +237,7 @@ let fetch (((fs, working_path, l), p):t) : contents =
   fetch_helper fs p
 
 let exists (((fs, working_path, l), p):t) : bool =
-  exists_helper p
+  exists_helper fs p
 
 let is_dir (((fs, working_path, l), p):t) : bool =
   is_dir_helper fs p
@@ -245,7 +250,8 @@ let sync_path (((fs, working_path, l) ,p) : t) : t or_fail =
       mk_err "sync_path - parent of new path ( %s ) is not a directory" p
     else begin
       working_path := parent_dir;
-      mk_ok ((fs, working_path), p)
+      mk_ok ((fs, working_path, l), p)
+    end
 
 
 let dummy_path = ""

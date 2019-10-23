@@ -104,7 +104,7 @@ let check_path_preconditions ((fs, p): t) :t or_fail=
 
 let get_log t = []
 
-let clear_log (((fs, working_path, l), p, l) :t) : t or_fail =
+let clear_log (t:t) : t or_fail =
   mk_ok t
 
 let create (p: path) : t or_fail =
