@@ -4,7 +4,6 @@ open Utils
 
 (* Types *)
 type fs
-type path = string
 
 type fetch_rep =
   | FileRep of string
@@ -29,13 +28,13 @@ type forest_navigation =
   | Prev
 
 type forest_update =
-  | Store_File of string
-  | Store_Dir of SSet.t
+  | Store_File of string fexp
+  | Store_Dir of SSet.t fexp
   | Create_Path
 
-type forest_command = Nav of forest_navigation | Update of forest_update
+and forest_command = Nav of forest_navigation | Update of forest_update
 
-type specification =
+and specification =
   | Null
   | File
   | Dir
@@ -45,7 +44,7 @@ type specification =
   | Opt of specification
   | Pred of bool fexp
 
-and 'a fexp = fs -> env -> 'a
+and 'a fexp = fs -> env -> ('a * log)
 
 and direnv = (path * zipper) Var.Map.t
 and compenv = string Var.Map.t

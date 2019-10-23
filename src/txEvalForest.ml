@@ -22,7 +22,7 @@ type fetch_rep =
   | PredRep of bool
   | NullRep [@@deriving show]
 
-type fetch_result = fetch_rep
+type fetch_result = fetch_rep [@@deriving show]
 
 type forest_navigation =
   | Down
@@ -32,14 +32,16 @@ type forest_navigation =
   | Into_Opt
   | Out
   | Next
-  | Prev
+  | Prev [@@deriving show]
 
 type forest_update =
   | Store_File of string fexp
   | Store_Dir of SSet.t fexp
-  | Create_Path
+  | Create_Path [@@deriving show]
 
-and forest_command = Nav of forest_navigation | Update of forest_update
+and forest_command =
+  | Nav of forest_navigation
+  | Update of forest_update [@@deriving show]
 
 and  specification =
   | Null
@@ -49,12 +51,12 @@ and  specification =
   | DPair of Var.t * specification * specification
   | Comp of specification * Var.t * SSet.t fexp
   | Opt of specification
-  | Pred of bool fexp
+  | Pred of bool fexp [@@deriving show]
 
 and 'a fexp = fs -> env -> ('a * log)
 
-and direnv = (path * zipper) Var.Map.t
-and compenv = string Var.Map.t
+and direnv = (path * zipper) Var.Map.t [@opaque]
+and compenv = string Var.Map.t [@opaque]
 and env = direnv * compenv
 
 and node = env * specification
@@ -64,10 +66,10 @@ and zipper =
     left : node list;
     current : node;
     right: node list;
-  }
+  } [@@deriving show]
 
 (*also known as context in the paper*)
-and ctxt = env * path * PathSet.t * zipper
+type ctxt = env * path * PathSet.t * zipper
 
 
 (*extra types not in the mli*)
@@ -75,7 +77,7 @@ and ctxt = env * path * PathSet.t * zipper
 
 (* timestamp
  *)
-and ts = float
+type ts = float
 
 
 
@@ -100,6 +102,8 @@ type t = ctxt * fs * log
 let global_log : global_log ref = ref []
 let global_fs : (PermFS.t or_fail) ref = ref (PermFS.create PermFS.dummy_path)
 
+
+let print_fetch_result = Fn.compose (Printf.printf "%s \n") show_fetch_result
 
 let make_zipper ?ancestor ?(left=[]) ?(right=[]) current = {ancestor; left; current; right}
 let add_to_dirEnv ~key ~data : env -> env = Tuple.T2.map_fst ~f:(Map.set ~key ~data)
@@ -271,7 +275,51 @@ let commit (fc : forest_command) ((ctxt, fs, _): t) : t or_fail =
   end
 
 
-let fetch t = failwith "TODO: Implement"
+let fetch ((env, p, ps, z), fs, l) : fetch_result or_fail =
+(*   let%bind (fs, p, ps, z) = sync_path t in *)
+  match z with
+  | {current = (_, File); _ } ->
+    begin
+      match TempFS.fetch (fs, p) with
+      | File u -> FileRep u |> mk_ok
+      | _ -> mk_err "File expected, but node at path %s is not a file" p
+    end
+  | {current = (_, Dir); _ } ->
+    begin
+      match TempFS.fetch (fs, p) with
+      | Dir l -> String.Set.of_list l |> DirRep |> mk_ok
+      | _ -> mk_err "Directory expected, but node at path %s is not a directory" p
+    end
+  | {current = (env_l, PathExp (f,_)); _ } -> begin
+    let (u, _) = (f fs env_l) in
+      PathRep u |> mk_ok
+  end
+  | {current = (_, DPair (x,_,_)); _ } -> begin
+    PairRep x |> mk_ok
+  end
+  | {current = (env_l, Comp (_,_,f)); _ } -> begin
+    let (u, l) = (f fs env_l) in
+      CompRep u |> mk_ok
+  end
+  | {current = (_, Opt _); _ } -> begin
+    OptRep (TempFS.exists (fs,p)) |> mk_ok
+  end
+  | {current = (env_l, Pred f); _ } -> begin
+    let (u, l) = (f fs env_l) in
+      PredRep u |> mk_ok
+  end
+  | {current = (_, Null); _ } -> begin
+    NullRep |> mk_ok
+  end
+
+let print t =
+    match fetch t with
+    | Ok fr -> print_fetch_result fr
+    | Error u -> Printf.printf "print: %s\n" u
+
+let print_ret t = f_ret ~f:print t
+
+let debug_print ((_,_,_,z),_,_) = Printf.printf "%s\n" (show_zipper z)
 
 let verify t = failwith "TODO: Implement"
 

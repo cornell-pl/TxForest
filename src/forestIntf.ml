@@ -423,14 +423,14 @@ module TxForestS = struct
     | SDirComp ->
         let%bind t' = into_pair t in
         let dir = fetch_dir t' in
-        do_err dir ~ferr:(fun _ -> TxForestCore.store_dir s t' >>= out)
+        do_err dir ~ferr:(fun _ -> TxForestCore.store_dir (fun fs env -> (s, []) ) t' >>= out)
         ~fok:(fun dir ->
           let%bind t' = next t' in
           let%bind comp = fetch_comp t' in
           let s' =
             Set.filter dir ~f:(fun u -> not (Set.exists ~f:(String.equal u) comp))
           in
-          prev t' >>= store_dir (Set.union s s') >>= out
+          prev t' >>= store_dir (fun fs env -> ((Set.union s s'), [])) >>= out
         )
     | _ -> mk_err "Store_dir is only allowed at a directory-based comprehension"
 
