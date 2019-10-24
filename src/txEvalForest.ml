@@ -53,7 +53,7 @@ and  specification =
   | Opt of specification
   | Pred of bool fexp [@@deriving show]
 
-and 'a fexp = fs -> env -> ('a * log)
+and 'a fexp = fs -> env -> 'a
 
 and direnv = (path * zipper) Var.Map.t [@opaque]
 and compenv = string Var.Map.t [@opaque]
@@ -80,6 +80,7 @@ type ctxt = env * path * PathSet.t * zipper
 type ts = float
 
 
+type local_log = log ref
 
 (* log
  * list of commited timestamped log entries, where the timestamp indicates the
@@ -96,7 +97,7 @@ type transaction = thread * tx_state
 
 type thread_pool = transaction list
 
-type t = ctxt * fs * log
+type t = ctxt * fs * local_log
 
 
 let global_log : global_log ref = ref []
@@ -115,32 +116,34 @@ let is_path = function
 let empty_env : env = (Var.Map.empty, Var.Map.empty)
 
 
-let eval_forest_navigation fn (ctxt, fs, _) : t or_fail =
+let eval_forest_navigation fn (ctxt, fs, l) : t or_fail =
 (*   let%bind (fs, p, ps, z) = sync_path t in *)
   let (env, p, ps, z) = ctxt in
   match fn, z  with
   | Down, {current = (env_l, PathExp (f, s) ); _ } -> begin
-      let (u, l) = f fs env in
+      let u = f fs env in
+      let old_log = !l in
         if TempFS.is_dir (fs,p)
         then
           let%map (fs', p') = TempFS.gotoChild u (fs, p) in
-          let l' = (Read ((Dir []),  p) ) :: l in
+          let l' = (Read ((Dir []),  p) ) :: old_log in
           let z' = make_zipper ~ancestor:z (env_l, s) in
-           ((env, p',PathSet.add ps p', z'), fs',  l')
+            l := l';
+            ((env, p',PathSet.add ps p', z'), fs',  l)
         else mk_err "Down requires the current filesystem node to be directory. %s is not" p
   end
   | Up, {ancestor = Some(z');_} when is_path z'-> begin
       let%map (fs', p') = TempFS.pop (fs, p) in
-        ((env, p', ps, z'), fs', [])
+        ((env, p', ps, z'), fs', l)
   end
   | Into_Pair, {current = (env_l, DPair(x,s1,s2)); _ } -> begin
       let ctxt' = (p, make_zipper (env_l, s1)) in
       let env_r = add_to_dirEnv ~key:x ~data:(p, make_zipper (env_l, s1)) env_l in
       let z' = make_zipper ~ancestor:z (env_l, s1) ~right:[(env_r, s2)] in
-        mk_ok ((env, p, ps, z'), fs, [])
+        mk_ok ((env, p, ps, z'), fs, l)
   end
   | Into_Comp, {current = (env_l, Comp(s, x, f)); _ } -> begin
-      let (us, l) = f fs env in
+      let us = f fs env in
       match us |> Set.to_list with
       | hd :: tl ->
         let r = List.map tl ~f:(fun u -> (add_to_compEnv ~key:x ~data:u env, s)) in
@@ -151,18 +154,18 @@ let eval_forest_navigation fn (ctxt, fs, _) : t or_fail =
   end
   | Into_Opt, {current = (env, Opt s); _ } -> begin
       let z' = make_zipper ~ancestor:z (env,s) in
-        mk_ok ((env, p, ps, z'), fs, [])
+        mk_ok ((env, p, ps, z'), fs, l)
   end
   | Out, {ancestor = Some(z')} when not (is_path z') -> begin
-      mk_ok ((env, p, ps, z'), fs, [])
+      mk_ok ((env, p, ps, z'), fs, l)
   end
   | Next, {ancestor; left; current; right=(new_current::right)}-> begin
       let z' = make_zipper ?ancestor ~left:(current::left) new_current ~right:right in
-        mk_ok ((env, p, ps, z'), fs, [])
+        mk_ok ((env, p, ps, z'), fs, l)
   end
   | Prev, { ancestor; left=(new_current::left); current; right} -> begin
       let z' = make_zipper ?ancestor ~left:left new_current ~right:(current :: right) in
-        mk_ok ((env, p, ps, z'), fs, [])
+        mk_ok ((env, p, ps, z'), fs, l)
   end
   (* Nicer Error handling *)
   | Down, _ -> mk_err "Down can only be used at a path node"
@@ -175,30 +178,36 @@ let eval_forest_navigation fn (ctxt, fs, _) : t or_fail =
   | Prev, _ -> mk_err "Prev can only be used when there is a previous node"
 
 
-let eval_forest_update fu (ctxt, fs, _) : t or_fail =
+let eval_forest_update fu (ctxt, fs, l) : t or_fail =
   (*   let%bind (fs, p, ps, z) = sync_path t in *)
   let (env, p, ps, z) = ctxt in
   match fu , z with
   | Store_File f, {current = (_, File); _ } -> begin
-      let (u, l) = f fs env in
+      let u = f fs env in
+      let old_log = !l in
       let%bind (fs', p') = TempFS.make_file u (fs, p) in
       let l' = TempFS.get_log (fs', p') in
       let%map (fs'', p'') = TempFS.clear_log (fs', p') in
-        ((env, p'', ps, z), fs'', l @ l')
+        l := old_log @ l';
+        ((env, p'', ps, z), fs'', l)
   end
   | Store_Dir f, {current = (_, Dir); _ } ->begin
-      let (s, l) = f fs env in
+      let s = f fs env in
+      let old_log = !l in
       let%bind (fs', p') = TempFS.make_directory (Set.to_list s) (fs, p)  in
       let l' = TempFS.get_log (fs', p') in
       let%map (fs'', p'') = TempFS.clear_log (fs', p') in
-        ((env, p'', ps, z), fs'', l @ l')
+        l := old_log @ l';
+        ((env, p'', ps, z), fs'', l)
   end
   | Create_Path, {current = (env, PathExp (f,s)); _ } -> begin
       let (u, l) = f fs env in
+      let old_log = !l in
       let%bind (fs', p') = TempFS.add_to_directory u (fs, p) in
       let l' = TempFS.get_log (fs', p') in
       let%map (fs'', p'') = TempFS.clear_log (fs', p') in
-        ((env, p'', ps, z), fs'', (Read ((File ""), p) )::(l @ l'))
+        l := (Read ((File ""), p) )::(old_log @ l');
+        ((env, p'', ps, z), fs'', l)
   end
   (* Nicer Error handling *)
   | Store_File _, _ -> mk_err "Store_File can only be used at a file node"
@@ -206,10 +215,10 @@ let eval_forest_update fu (ctxt, fs, _) : t or_fail =
   | Create_Path, _ -> mk_err "Create_Path can only be used at a path node"
 
 
-let eval_forest_command fc (ctxt, fs, _) : t or_fail =
+let eval_forest_command fc (ctxt, fs, l) : t or_fail =
   match fc with
-  | Nav fn -> eval_forest_navigation fn (ctxt, fs, [])
-  | Update fu -> eval_forest_update fu (ctxt, fs, [])
+  | Nav fn -> eval_forest_navigation fn (ctxt, fs, l)
+  | Update fu -> eval_forest_update fu (ctxt, fs, l)
 
 
 let conflict_path (p':path) (e: le) : bool =
@@ -259,15 +268,15 @@ let update_global_log (ll: log) : unit =
     global_log := ((!global_log) @ ts_local_log)
 
 
-let commit (fc : forest_command) ((ctxt, fs, _): t) : t or_fail =
+let commit (fc : forest_command) ((ctxt, fs, l): t) : t or_fail =
   let new_thread = (ctxt, fs, []) in
   let ts = Unix.time () in
-  let%bind (ctxt', fs', l) = eval_forest_command fc new_thread in
-  if check_log (!global_log) l ts then begin
+  let%bind (ctxt', fs', l') = eval_forest_command fc new_thread in
+  if check_log (!global_log) (!l') ts then begin
     (*there are no conflicts, transaction may proceed*)
-    merge l;
-    update_global_log l;
-    mk_ok (ctxt', fs', [])
+    merge (!l);
+    update_global_log (!l);
+    mk_ok (ctxt', fs', l)
   end
   else begin
     (*there are conflicts, transaction may NOT proceed*)
@@ -330,7 +339,7 @@ let loop_txn_noExn ~(f:t->'a) (s:specification) (p:string) () =
     match TempFS.goto p (fs, TempFS.dummy_path) with
     | Error _ -> failwithf "loop_txn: path %s does not exist" p ()
     | Ok (fs', p') -> begin
-      ((empty_env, p', PathSet.singleton p', make_zipper (empty_env, s)), fs', [])
+      ((empty_env, p', PathSet.singleton p', make_zipper (empty_env, s)), fs', ref [])
       |> f
     end
   in
@@ -343,7 +352,7 @@ let run_txn ~(f:t->'a or_fail) (s:specification) (p:string) () =
     match TempFS.goto p (fs, TempFS.dummy_path) with
     | Error _ -> failwithf "run_txn: path %s does not exist" p ()
     | Ok (fs', p') -> begin
-      ((empty_env, p', PathSet.singleton p', make_zipper (empty_env, s)), fs', [])
+      ((empty_env, p', PathSet.singleton p', make_zipper (empty_env, s)), fs', ref [])
       |> f
     end
   in
@@ -358,7 +367,7 @@ let run_command (fc : forest_command) (s:specification) ?(p: path option) () =
   let z = make_zipper (empty_env, s) in
   let ctxt = (env, p, ps, z) in
   let fs = match TempFS.create TempFS.dummy_path with Ok (fs, p) -> fs | _ -> failwith "unable t make fs" in
-  let l = [] in
+  let l = ref [] in
   let t = (ctxt, fs, l) in
     match commit fc t with
     | Ok _ -> Printf.printf "Command successfully commited!\n"
@@ -372,7 +381,7 @@ let run_commands (fcs : forest_command list) (s:specification) ?(p: path option)
   let z = make_zipper (empty_env, s) in
   let ctxt = (env, p, ps, z) in
   let fs = match TempFS.create TempFS.dummy_path with Ok (fs, p) -> fs | _ -> failwith "unable t make fs" in
-  let l = [] in
+  let l = ref [] in
   let t = (ctxt, fs, l) in
   let rec run fcs t =
     match fcs with

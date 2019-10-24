@@ -6,6 +6,7 @@ open Result
 
 let i = "index"
 
+
 [%%txforest {|
   d = directory {
       index is i :: file;
@@ -18,17 +19,19 @@ let i = "index"
     }
 |}]
 
+
 [%%txforest {|
 
-  hellofile = "hello"  :: file
+  hellofile = "hello" :: file
 
 |}]
 
 [%%txforest {|
 
-  ofile = "hello"  :: file option
+  ofile = h :: file option
 
 |}]
+
 
 [%%txforest {|
 
@@ -43,7 +46,7 @@ let i = "index"
 
 [%%txforest {|
 
-  c1 = [ x :: file | x <- $String.Set.of_list ["foo";"bar";"etc"]$ ]
+  c1 = [ x :: file | x <- $(String.Set.of_list ["foo";"bar";"etc"], [])$ ]
 
 |}]
 

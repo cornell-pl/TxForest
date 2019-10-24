@@ -14,7 +14,7 @@
 
 - re-organize types so they match the paper more closely and put some in
 utils file so they can be shared between modules better
-- implement in memory "copy" of posix file system for forest to run on before commiting a transaction
+- implement in memory "copy" of posix file system for forest to run on before commiting a transaction (thoughts on this, do you think this should be done a different way?)
 - add Filesystems module, since forest needs a module for its temporary and
 persisitant file systems
 - add logging to above file system
@@ -23,13 +23,21 @@ persisitant file systems
 - add commit logic for updating the global fs for forest
 
 
+- for paths, in the paper we allow the expression to be any expression and then evaluate it, this means the user would have to write things like ("index" , []) :: ... in stead of ("index" , [])
+  - we could assume they just do the string and add the [] in the ppx code, thoughts?
+
+- started merging ppx woth work with the type changes and added logging of forest
+
 ## Whats next
 
+- change to using temp dir in posix instead of memory
+
+- ppx and forest
 - need to more throughly go through the file systems and forest code to clean them up and test out a little more to see if any bugs
 - also add a server like zfs to make it cleaner for examples to runn on forest?
 - a client to make it easier to force conflicts like with zfs
 - port all the examples on to this
-- the code prolly could use some reoring, its all in the same directory, but spliting up the fs stuff, forest implemenation, server and api would prolly do some good
+- the code prolly could use some reogring, its all in the same directory, but spliting up the fs stuff, forest implemenation, server and api would prolly do some good
 
 - look more into the way to make a python wrapper for ocaml
   - plan out what this part of the project will look like
