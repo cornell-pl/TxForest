@@ -28,7 +28,7 @@ let i = "index"
 
 [%%txforest {|
 
-  ofile = h :: file option
+  ofile = "hello" :: file option
 
 |}]
 
