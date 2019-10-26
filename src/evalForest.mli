@@ -4,6 +4,7 @@ open Utils
 
 (* Types *)
 type fs
+type local_log = log ref
 
 type fetch_rep =
   | FileRep of string
@@ -44,9 +45,9 @@ and specification =
   | Opt of specification
   | Pred of bool fexp
 
-and 'a fexp = fs -> env -> ('a * log)
+and 'a fexp = fs -> env -> 'a
 
-and direnv = (path * zipper) Var.Map.t
+and direnv = (path * zipper * local_log) Var.Map.t
 and compenv = string Var.Map.t
 and env = direnv * compenv
 
@@ -58,8 +59,8 @@ and zipper =
     current : node;
     right: node list;
   }
-
-type t
+type ctxt = path * PathSet.t * zipper
+type t = ctxt * fs * local_log
 
 val print_fetch_result : fetch_result -> unit
 

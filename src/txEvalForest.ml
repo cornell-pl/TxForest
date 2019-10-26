@@ -12,6 +12,8 @@ open Utils
 (* Types *)
 type fs = TempFS.fs
 
+type local_log = log ref
+
 type fetch_rep =
   | FileRep of string
   | DirRep of SSet.t
@@ -55,7 +57,7 @@ and  specification =
 
 and 'a fexp = fs -> env -> 'a
 
-and direnv = (path * zipper) Var.Map.t [@opaque]
+and direnv = (path * zipper * local_log) Var.Map.t [@opaque]
 and compenv = string Var.Map.t [@opaque]
 and env = direnv * compenv
 
@@ -69,7 +71,7 @@ and zipper =
   } [@@deriving show]
 
 (*also known as context in the paper*)
-type ctxt = env * path * PathSet.t * zipper
+type ctxt = path * PathSet.t * zipper
 
 
 (*extra types not in the mli*)
@@ -80,7 +82,7 @@ type ctxt = env * path * PathSet.t * zipper
 type ts = float
 
 
-type local_log = log ref
+
 
 (* log
  * list of commited timestamped log entries, where the timestamp indicates the
@@ -118,10 +120,10 @@ let empty_env : env = (Var.Map.empty, Var.Map.empty)
 
 let eval_forest_navigation fn (ctxt, fs, l) : t or_fail =
 (*   let%bind (fs, p, ps, z) = sync_path t in *)
-  let (env, p, ps, z) = ctxt in
+  let p, ps, z = ctxt in
   match fn, z  with
   | Down, {current = (env_l, PathExp (f, s) ); _ } -> begin
-      let u = f fs env in
+      let u = f fs env_l in
       let old_log = !l in
         if TempFS.is_dir (fs,p)
         then
@@ -129,43 +131,43 @@ let eval_forest_navigation fn (ctxt, fs, l) : t or_fail =
           let l' = (Read ((Dir []),  p) ) :: old_log in
           let z' = make_zipper ~ancestor:z (env_l, s) in
             l := l';
-            ((env, p',PathSet.add ps p', z'), fs',  l)
+            ((p',PathSet.add ps p', z'), fs',  l)
         else mk_err "Down requires the current filesystem node to be directory. %s is not" p
   end
   | Up, {ancestor = Some(z');_} when is_path z'-> begin
       let%map (fs', p') = TempFS.pop (fs, p) in
-        ((env, p', ps, z'), fs', l)
+        ((p', ps, z'), fs', l)
   end
   | Into_Pair, {current = (env_l, DPair(x,s1,s2)); _ } -> begin
       let ctxt' = (p, make_zipper (env_l, s1)) in
-      let env_r = add_to_dirEnv ~key:x ~data:(p, make_zipper (env_l, s1)) env_l in
+      let env_r = add_to_dirEnv ~key:x ~data:(p, make_zipper (env_l, s1), l) env_l in
       let z' = make_zipper ~ancestor:z (env_l, s1) ~right:[(env_r, s2)] in
-        mk_ok ((env, p, ps, z'), fs, l)
+        mk_ok ((p, ps, z'), fs, l)
   end
   | Into_Comp, {current = (env_l, Comp(s, x, f)); _ } -> begin
-      let us = f fs env in
+      let us = f fs env_l in
       match us |> Set.to_list with
       | hd :: tl ->
-        let r = List.map tl ~f:(fun u -> (add_to_compEnv ~key:x ~data:u env, s)) in
+        let r = List.map tl ~f:(fun u -> (add_to_compEnv ~key:x ~data:u env_l, s)) in
         let cur = (add_to_compEnv ~key:x ~data:hd env_l, s) in
         let z' = make_zipper ~ancestor:z cur ~right:r in
-          mk_ok ((env, p, ps, z'), fs, l)
+          mk_ok ((p, ps, z'), fs, l)
       | [] -> mk_err "Into_Comp requires the comprehension to be non-empty"
   end
   | Into_Opt, {current = (env, Opt s); _ } -> begin
       let z' = make_zipper ~ancestor:z (env,s) in
-        mk_ok ((env, p, ps, z'), fs, l)
+        mk_ok ((p, ps, z'), fs, l)
   end
   | Out, {ancestor = Some(z')} when not (is_path z') -> begin
-      mk_ok ((env, p, ps, z'), fs, l)
+      mk_ok ((p, ps, z'), fs, l)
   end
   | Next, {ancestor; left; current; right=(new_current::right)}-> begin
       let z' = make_zipper ?ancestor ~left:(current::left) new_current ~right:right in
-        mk_ok ((env, p, ps, z'), fs, l)
+        mk_ok ((p, ps, z'), fs, l)
   end
   | Prev, { ancestor; left=(new_current::left); current; right} -> begin
       let z' = make_zipper ?ancestor ~left:left new_current ~right:(current :: right) in
-        mk_ok ((env, p, ps, z'), fs, l)
+        mk_ok ((p, ps, z'), fs, l)
   end
   (* Nicer Error handling *)
   | Down, _ -> mk_err "Down can only be used at a path node"
@@ -180,34 +182,34 @@ let eval_forest_navigation fn (ctxt, fs, l) : t or_fail =
 
 let eval_forest_update fu (ctxt, fs, l) : t or_fail =
   (*   let%bind (fs, p, ps, z) = sync_path t in *)
-  let (env, p, ps, z) = ctxt in
+  let (p, ps, z) = ctxt in
   match fu , z with
-  | Store_File f, {current = (_, File); _ } -> begin
+  | Store_File f, {current = (env, File); _ } -> begin
       let u = f fs env in
       let old_log = !l in
       let%bind (fs', p') = TempFS.make_file u (fs, p) in
       let l' = TempFS.get_log (fs', p') in
       let%map (fs'', p'') = TempFS.clear_log (fs', p') in
         l := old_log @ l';
-        ((env, p'', ps, z), fs'', l)
+        ((p'', ps, z), fs'', l)
   end
-  | Store_Dir f, {current = (_, Dir); _ } ->begin
+  | Store_Dir f, {current = (env, Dir); _ } ->begin
       let s = f fs env in
       let old_log = !l in
       let%bind (fs', p') = TempFS.make_directory (Set.to_list s) (fs, p)  in
       let l' = TempFS.get_log (fs', p') in
       let%map (fs'', p'') = TempFS.clear_log (fs', p') in
         l := old_log @ l';
-        ((env, p'', ps, z), fs'', l)
+        ((p'', ps, z), fs'', l)
   end
   | Create_Path, {current = (env, PathExp (f,s)); _ } -> begin
-      let (u, l) = f fs env in
+      let u = f fs env in
       let old_log = !l in
       let%bind (fs', p') = TempFS.add_to_directory u (fs, p) in
       let l' = TempFS.get_log (fs', p') in
       let%map (fs'', p'') = TempFS.clear_log (fs', p') in
         l := (Read ((File ""), p) )::(old_log @ l');
-        ((env, p'', ps, z), fs'', l)
+        ((p'', ps, z), fs'', l)
   end
   (* Nicer Error handling *)
   | Store_File _, _ -> mk_err "Store_File can only be used at a file node"
@@ -268,11 +270,11 @@ let update_global_log (ll: log) : unit =
     global_log := ((!global_log) @ ts_local_log)
 
 
-let commit (fc : forest_command) ((ctxt, fs, l): t) : t or_fail =
-  let new_thread = (ctxt, fs, []) in
+let commit (fc : forest_command) ((ctxt, fs, _): t) : t or_fail =
+  let new_thread = (ctxt, fs, ref []) in
   let ts = Unix.time () in
-  let%bind (ctxt', fs', l') = eval_forest_command fc new_thread in
-  if check_log (!global_log) (!l') ts then begin
+  let%bind (ctxt', fs', l) = eval_forest_command fc new_thread in
+  if check_log (!global_log) (!l) ts then begin
     (*there are no conflicts, transaction may proceed*)
     merge (!l);
     update_global_log (!l);
@@ -284,7 +286,7 @@ let commit (fc : forest_command) ((ctxt, fs, l): t) : t or_fail =
   end
 
 
-let fetch ((env, p, ps, z), fs, l) : fetch_result or_fail =
+let fetch ((p, ps, z), fs, l) : fetch_result or_fail =
 (*   let%bind (fs, p, ps, z) = sync_path t in *)
   match z with
   | {current = (_, File); _ } ->
@@ -300,21 +302,21 @@ let fetch ((env, p, ps, z), fs, l) : fetch_result or_fail =
       | _ -> mk_err "Directory expected, but node at path %s is not a directory" p
     end
   | {current = (env_l, PathExp (f,_)); _ } -> begin
-    let (u, _) = (f fs env_l) in
+    let u = f fs env_l in
       PathRep u |> mk_ok
   end
   | {current = (_, DPair (x,_,_)); _ } -> begin
     PairRep x |> mk_ok
   end
   | {current = (env_l, Comp (_,_,f)); _ } -> begin
-    let (u, l) = (f fs env_l) in
+    let u = f fs env_l in
       CompRep u |> mk_ok
   end
   | {current = (_, Opt _); _ } -> begin
     OptRep (TempFS.exists (fs,p)) |> mk_ok
   end
   | {current = (env_l, Pred f); _ } -> begin
-    let (u, l) = (f fs env_l) in
+    let u = f fs env_l in
       PredRep u |> mk_ok
   end
   | {current = (_, Null); _ } -> begin
@@ -328,7 +330,7 @@ let print t =
 
 let print_ret t = f_ret ~f:print t
 
-let debug_print ((_,_,_,z),_,_) = Printf.printf "%s\n" (show_zipper z)
+let debug_print ((_,_,z),_,_) = Printf.printf "%s\n" (show_zipper z)
 
 let verify t = failwith "TODO: Implement"
 
@@ -339,7 +341,7 @@ let loop_txn_noExn ~(f:t->'a) (s:specification) (p:string) () =
     match TempFS.goto p (fs, TempFS.dummy_path) with
     | Error _ -> failwithf "loop_txn: path %s does not exist" p ()
     | Ok (fs', p') -> begin
-      ((empty_env, p', PathSet.singleton p', make_zipper (empty_env, s)), fs', ref [])
+      ((p', PathSet.singleton p', make_zipper (empty_env, s)), fs', ref [])
       |> f
     end
   in
@@ -352,7 +354,7 @@ let run_txn ~(f:t->'a or_fail) (s:specification) (p:string) () =
     match TempFS.goto p (fs, TempFS.dummy_path) with
     | Error _ -> failwithf "run_txn: path %s does not exist" p ()
     | Ok (fs', p') -> begin
-      ((empty_env, p', PathSet.singleton p', make_zipper (empty_env, s)), fs', ref [])
+      ((p', PathSet.singleton p', make_zipper (empty_env, s)), fs', ref [])
       |> f
     end
   in
@@ -361,11 +363,10 @@ let run_txn ~(f:t->'a or_fail) (s:specification) (p:string) () =
 
 
 let run_command (fc : forest_command) (s:specification) ?(p: path option) () =
-  let env = empty_env in
   let p = match p with None -> TempFS.dummy_path | Some p' -> p' in
   let ps = PathSet.singleton p in
   let z = make_zipper (empty_env, s) in
-  let ctxt = (env, p, ps, z) in
+  let ctxt = (p, ps, z) in
   let fs = match TempFS.create TempFS.dummy_path with Ok (fs, p) -> fs | _ -> failwith "unable t make fs" in
   let l = ref [] in
   let t = (ctxt, fs, l) in
@@ -375,11 +376,10 @@ let run_command (fc : forest_command) (s:specification) ?(p: path option) () =
 
 
 let run_commands (fcs : forest_command list) (s:specification) ?(p: path option) () :unit =
-  let env = empty_env in
   let p = match p with None -> TempFS.dummy_path | Some p' -> p' in
   let ps = PathSet.singleton p in
   let z = make_zipper (empty_env, s) in
-  let ctxt = (env, p, ps, z) in
+  let ctxt = (p, ps, z) in
   let fs = match TempFS.create TempFS.dummy_path with Ok (fs, p) -> fs | _ -> failwith "unable t make fs" in
   let l = ref [] in
   let t = (ctxt, fs, l) in
