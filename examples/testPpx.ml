@@ -46,7 +46,7 @@ let i = "index"
 
 [%%txforest {|
 
-  c1 = [ x :: file | x <- $(String.Set.of_list ["foo";"bar";"etc"], [])$ ]
+  c1 = [ x :: file | x <- $String.Set.of_list ["foo";"bar";"etc"]$ ]
 
 |}]
 
