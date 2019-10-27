@@ -252,11 +252,11 @@ module TxForestCoreOpen = struct
   include Derived
 end
 
-module TxForestCore : ForestRaw = struct
+module TxForestCore  = struct
   include TxForestCoreOpen
 end
 
-module TxForestCoreExn : ForestRaw = struct
+module TxForestCoreExn  = struct
   type 'a out = 'a
 
   module type Derived = sig
@@ -351,7 +351,7 @@ module TxForestRawWalkThrough = struct
 end
 
 
-module TxForestS : ForestRaw = struct
+module TxForestS  = struct
   type 'a out = 'a or_fail
 
   module type Derived = sig
