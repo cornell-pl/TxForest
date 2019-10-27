@@ -76,11 +76,19 @@ let print = EvalForest.print
 let print_ret = EvalForest.print_ret
 let debug_print = EvalForest.debug_print
 
-(* TODO: Figure out how to properly expose this module type
+
+
+
+(* TODO: Figure out how to properly expose this module type *)
 module type ForestRaw = sig
   (** Basically as seen in TxForest paper *)
 
   type 'a out
+
+  module type Derived = sig
+    val goto_pos : int -> t -> t out
+    val goto_name : name -> t -> t out
+  end
 
   (* Standard Navigations *)
   val down : t -> t out
@@ -96,7 +104,7 @@ module type ForestRaw = sig
 
   (* Updates *)
   val store_file : string ->  t -> t out
-  val store_dir : name list -> t -> t out
+  val store_dir : SSet.t -> t -> t out
   val create_path : t -> t out
 
   (* Fetches *)
@@ -104,13 +112,13 @@ module type ForestRaw = sig
 
   val fetch_file : t -> string out
 
-  val fetch_dir : t -> string list out
+  val fetch_dir : t -> SSet.t out
 
   val fetch_path : t -> name out
 
   val fetch_pair : t -> Var.t out
 
-  val fetch_comp : t -> name list out
+  val fetch_comp : t -> SSet.t out
 
   val fetch_opt : t -> bool out
 
@@ -121,16 +129,18 @@ module type ForestRaw = sig
 
   val verify : t -> bool * bool
   val check : forest_command -> t -> bool
+
+  include Derived
+
+end
+
+module TxForestCoreOpen = struct
+  type 'a out = 'a or_fail
+
   module type Derived = sig
     val goto_pos : int -> t -> t out
     val goto_name : name -> t -> t out
   end
-  include Derived
-end
-*)
-
-module TxForestCore = struct
-  type 'a out = 'a or_fail
 
   (* Standard Navigations *)
   let down = eval_forest_command (Nav Down)
@@ -145,8 +155,8 @@ module TxForestCore = struct
   let prev = eval_forest_command (Nav Prev)
 
   (* Updates *)
-  let store_file u = eval_forest_command (Update (Store_File u))
-  let store_dir l = eval_forest_command (Update (Store_Dir l))
+  let store_file (u: string) = eval_forest_command (Update (Store_File (fun _ _ -> u) ))
+  let store_dir (l: SSet.t) = eval_forest_command (Update (Store_Dir (fun _ _ -> l)))
   let create_path = eval_forest_command (Update Create_Path)
 
   (* Fetches *)
@@ -191,7 +201,7 @@ module TxForestCore = struct
   let verify = verify
   let check = check
 
-  module Derived  = struct
+  module Derived = struct
     open Result.Let_syntax
     (* Derived Navigations *)
     let goto_comp_pos pos t =
@@ -201,6 +211,8 @@ module TxForestCore = struct
         else mk_ok t
       in
         into_comp t >>= keep_going pos
+
+
 
     let goto_comp_name u t =
       let%bind l = fetch_comp t >>| Set.to_list in
@@ -224,16 +236,36 @@ module TxForestCore = struct
       | NullRep -> mk_err "%s is not in this directory specification" u
       | _ -> mk_err "Goto_dir_name can only be used in a directory"
 
+    let goto_pos pos t =
+      match fetch t with
+      | Ok (CompRep _) -> goto_comp_pos pos t
+      | Ok (PairRep _) -> goto_dir_pos pos t
+      | _ -> mk_err "goto_pos: unimplemented"
+
+    let goto_name name t =
+      match fetch t with
+      | Ok (CompRep _) -> goto_comp_name name t
+      | Ok (PairRep _) -> goto_dir_name name t
+      | _ -> mk_err "goto_name: unimplemented"
+
   end
   include Derived
 end
 
+module TxForestCore : ForestRaw = struct
+  include TxForestCoreOpen
+end
 
-module TxForestCoreExn = struct
+module TxForestCoreExn : ForestRaw = struct
   type 'a out = 'a
 
+  module type Derived = sig
+    val goto_pos : int -> t -> t out
+    val goto_name : name -> t -> t out
+  end
+
   open Core
-  open TxForestCore
+  open TxForestCoreOpen
   (* Standard Navigations *)
   let down = Fn.compose Result.ok_or_failwith down
   let up = Fn.compose Result.ok_or_failwith up
@@ -245,8 +277,8 @@ module TxForestCoreExn = struct
   let prev = Fn.compose Result.ok_or_failwith prev
 
   (* Updates *)
-  let store_file u = Fn.compose Result.ok_or_failwith (store_file u)
-  let store_dir l = Fn.compose Result.ok_or_failwith (store_dir l)
+  let store_file (u: string) = Fn.compose Result.ok_or_failwith (store_file  u)
+  let store_dir (l : SSet.t) = Fn.compose Result.ok_or_failwith (store_dir l )
   let create_path = Fn.compose Result.ok_or_failwith create_path
 
   (* Fetches *)
@@ -298,6 +330,18 @@ module TxForestCoreExn = struct
       | NullRep -> failwithf "%s is not in this directory specification" u ()
       | _ -> failwith "Goto_dir_name can only be used in a directory"
 
+    let goto_pos pos t =
+      match fetch t with
+      | CompRep _ -> goto_comp_pos pos t
+      | PairRep _ -> goto_dir_pos pos t
+      | _ -> failwith "goto_pos: unimplemented"
+
+    let goto_name name t =
+      match fetch t with
+      | CompRep _ -> goto_comp_name name t
+      | PairRep _ -> goto_dir_name name t
+      | _ -> failwith "goto_name: unimplemented"
+
   end
   include Derived
 end
@@ -307,8 +351,13 @@ module TxForestRawWalkThrough = struct
 end
 
 
-module TxForestS = struct
+module TxForestS : ForestRaw = struct
   type 'a out = 'a or_fail
+
+  module type Derived = sig
+    val goto_pos : int -> t -> t out
+    val goto_name : name -> t -> t out
+  end
 
   open Result.Let_syntax
 
@@ -335,7 +384,7 @@ module TxForestS = struct
 
   (* TODO: Do this in evalForest and avoid computation *)
   let sitch t =
-    let open TxForestCore in
+    let open TxForestCoreOpen in
     let%map s =
     match%map fetch t with
     | PairRep "dir'" -> SDirComp
@@ -356,17 +405,17 @@ module TxForestS = struct
     if is_ok t then t >>= fok else ferr t
 
   let out_or_up t =
-    let open TxForestCore in
+    let open TxForestCoreOpen in
     up t |> do_err  ~ferr:(fun _ -> out t) ~fok:mk_ok
 
   (* Standard Navigations *)
   let down t =
-    let open TxForestCore in
+    let open TxForestCoreOpen in
     match%bind sitch t with
     | SDirComp -> into_pair t >>= next >>= into_comp
     | SPred
     | SDir -> into_pair t
-    | SPath -> TxForestCore.down t
+    | SPath -> TxForestCoreOpen.down t
     | SOpt -> into_opt t
     | SComp -> into_comp t
     | _ -> mk_err "Down is illegal at File, Dir, or Pred nodes"
@@ -374,7 +423,7 @@ module TxForestS = struct
   (* TODO: Use check or some other aux function when implemented *)
   let up t =
     let rec walk_up_dir t =
-      TxForestCore.out t
+      TxForestCoreOpen.out t
       |> do_err ~ferr:(ignore_ret t)
         ~fok:(fun t' ->
           match%bind sitch t' with
@@ -383,7 +432,7 @@ module TxForestS = struct
           | _ -> down t
         )
     in
-    let open TxForestCore in
+    let open TxForestCoreOpen in
     let%bind t' = out_or_up t in
     match%bind sitch t' with
     | SDir -> walk_up_dir t'
@@ -401,36 +450,41 @@ module TxForestS = struct
     let%bind t' = out_or_up t in
     match%bind sitch t' with
     | SDir ->
-        let%bind t'' = TxForestCore.next t >>= down in
-        let%bind b = TxForestCore.is_null t in
+        let%bind t'' = TxForestCoreOpen.next t >>= down in
+        let%bind b = TxForestCoreOpen.is_null t in
         if b then mk_err "Walked next to a Null node" else mk_ok t''
     | SPred -> mk_err "Predicates do not have a next node"
-    | _ -> TxForestCore.next t
+    | _ -> TxForestCoreOpen.next t
 
 
   let prev t =
     let%bind t' = out_or_up t in
     match%bind sitch t' with
-    | SDir -> TxForestCore.prev t'
-    | _ -> TxForestCore.prev t
+    | SDir -> TxForestCoreOpen.prev t'
+    | _ -> TxForestCoreOpen.prev t
 
+
+  let into_opt t = mk_err "into_opt not intended for use with TxForestS"
+  let into_pair t = mk_err "into_pair not intended for use with TxForestS"
+  let into_comp t = mk_err "into_comp not intended for use with TxForestS"
+  let out t = mk_err "out not intended for use with TxForestS"
 
   (* Updates *)
-  let store_file u = eval_forest_command (Update (Store_File u))
-  let store_dir s t =
-    let open TxForestCore in
+  let store_file (u : string) = eval_forest_command (Update (Store_File (fun _ _ -> u)))
+  let store_dir (s : SSet.t) t =
+    let open TxForestCoreOpen in
     match%bind sitch t with
     | SDirComp ->
         let%bind t' = into_pair t in
         let dir = fetch_dir t' in
-        do_err dir ~ferr:(fun _ -> TxForestCore.store_dir (fun fs env -> s ) t' >>= out)
+        do_err dir ~ferr:(fun _ -> TxForestCoreOpen.store_dir s t' >>= out)
         ~fok:(fun dir ->
           let%bind t' = next t' in
           let%bind comp = fetch_comp t' in
           let s' =
             Set.filter dir ~f:(fun u -> not (Set.exists ~f:(String.equal u) comp))
           in
-          prev t' >>= store_dir (fun fs env -> (Set.union s s')) >>= out
+          prev t' >>= store_dir (Set.union s s') >>= out
         )
     | _ -> mk_err "Store_dir is only allowed at a directory-based comprehension"
 
@@ -448,25 +502,25 @@ module TxForestS = struct
 
   let fetch t =
     let rec get_names acc t =
-      let open TxForestCore in
+      let open TxForestCoreOpen in
       let%bind b = is_null t in
       if b then mk_ok acc
       else
         let%bind u = fetch_pair t in
         d "%s" u;
-        do_err TxForestCore.(into_pair t >>= next) ~ferr:(ignore_ret acc)
+        do_err TxForestCoreOpen.(into_pair t >>= next) ~ferr:(ignore_ret acc)
           ~fok:(get_names (String.Set.add acc u))
     in
     match%bind sitch t with
     | SDirComp
     | SPred ->
-        TxForestCore.into_pair t >>= TxForestCore.next
-        >>= TxForestCore.fetch >>| convert
+        TxForestCoreOpen.into_pair t >>= TxForestCoreOpen.next
+        >>= TxForestCoreOpen.fetch >>| convert
     | SDir -> get_names String.Set.empty t >>| fun s -> SDirRep s
     | SPath
     | SOpt
     | SComp
-    | SFile -> TxForestCore.fetch t >>| convert
+    | SFile -> TxForestCoreOpen.fetch t >>| convert
     | SDirS
     | SPredS
     | SNull -> mk_err "Fetch: It should be impossible to get to a Pred, Null, or Dir node"
@@ -498,6 +552,8 @@ module TxForestS = struct
   | SPredRep b -> mk_ok b
   | _ -> mk_err  "Fetch_pred can only be used at a predicate node"
 
+  let fetch_pair t = mk_err "fetch_pair not intended for use with TxForestS"
+
   (* Other *)
 
   let verify = verify
@@ -520,7 +576,7 @@ module TxForestS = struct
       goto_pos i t
 
     let rec goto u t =
-      let open TxForestCore in
+      let open TxForestCoreOpen in
       match%bind fetch t with
       | PairRep x when x = u -> into_pair t
       | PairRep _ -> into_pair t >>= next >>= goto u
