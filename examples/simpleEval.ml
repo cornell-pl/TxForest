@@ -1,7 +1,7 @@
 open Core
-
-open Forest
+open Rawforest
 open Utils
+open Forest
 open ForestIntf
 open Result
 open Result.Let_syntax

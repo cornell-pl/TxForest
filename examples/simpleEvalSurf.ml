@@ -1,6 +1,7 @@
 open Core
 
 open Forest
+open Rawforest
 open Utils
 open ForestIntf
 open Result
@@ -27,19 +28,19 @@ let print_file z = fetch_file z  >>| p "File Contents: %s\n" >>= fun _ -> mk_ok 
 let get_info_for_id (id: int) z =
   goto "dir" z
   >>= down
-  >>= goto_pos id 
+  >>= goto_pos id
   >>= down
   >>= print_file
 
 let get_info_for_name (name:string) z =
   goto "dir" z
   >>= down
-  >>= goto_name name 
+  >>= goto_name name
   >>= down
   >>= print_file
 
 
-let explore z = 
+let explore z =
   goto "dir" z >>= down
   >>= (fun z -> print z; mk_ok z)
 

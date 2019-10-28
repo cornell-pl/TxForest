@@ -30,6 +30,7 @@ type le =
 
 type log = le list
 
+
 (* Helper functions *)
 let debug = ref false
 let set_debug () = debug := true
@@ -47,3 +48,10 @@ let mk_ok t = Result.Ok t
 
 let ignore_ret x _ = Result.Ok x
 let f_ret ~f z = f z; mk_ok z
+
+let info_message ?id smsg input =
+  let input = Core.String.rstrip ~drop:((=) '\n') input in
+  match id with
+  | None -> print_endline (Printf.sprintf "%s - %s" smsg input)
+  | Some id -> print_endline (Printf.sprintf "%s - %s: %s" smsg (Async.Writer.Id.to_string id) input)
+

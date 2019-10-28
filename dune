@@ -1,1 +1,1 @@
-(dirs parsing ppx src examples)
+(dirs parsing ppx src lib examples)

@@ -1,3 +1,4 @@
+TARGETS=forest_server.exe
 EXAMPLES= paperExOCaml.exe testPpx.exe simpleEval.exe paperEx.exe simpleEvalSurf.exe \
 					paperExOld.exe
 					# grades.exe shelter.exe simple.exe  dependency.exe
@@ -10,7 +11,7 @@ all: build link
 build:
 	dune build --profile release
 
-link: $(EXAMPLES)
+link: $(EXAMPLES) $(TARGETS)
 
 %.exe:
 	if [ ! -d executables ]; then mkdir executables; fi
@@ -24,4 +25,4 @@ install:
 
 clean:
 	dune clean;
-	cd executables; rm -f $(EXAMPLES); cd ..
+	cd executables; rm -f $(TARGETS); rm -f $(EXAMPLES); cd ..

@@ -1,10 +1,20 @@
 (library
-  (public_name rawforest)
-  (name rawforest)
+  (public_name forest)
+  (name forest)
   (flags (:standard -w -32))
-  (libraries core re str async)
+  (libraries core re str rawforest)
   (preprocess (pps ppx_deriving.show ppx_deriving.make ppx_jane))
-  (modules Utils PosixFilesystem SimpleFilesystem UncommitedPosixFilesystem Filesystems TxEvalForest EvalForest)
+  (modules ForestIntf)
+)
+
+
+(executable
+  (name forestServer)
+  (public_name forestServer)
+  (libraries core async rawforest)
+  (preprocess (pps ppx_jane))
+  (modules ForestServer)
+  (package forest)
 )
 
 ; make add Utils, EvalForest private -> both needed for typing

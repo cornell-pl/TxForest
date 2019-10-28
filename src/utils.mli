@@ -37,6 +37,7 @@ type log = le list
 
 type 'a or_fail = ('a, string) Core.result
 
+
 val debug : bool ref
 val set_debug : unit -> unit
 val p : ('a, Stdio.Out_channel.t, unit) Base.format -> 'a
@@ -46,3 +47,4 @@ val mk_err : ('a, unit, string, 'b or_fail) format4 -> 'a
 val mk_ok : 'a -> 'a or_fail
 val ignore_ret : 'a -> 'b -> 'a or_fail
 val f_ret : f:('a -> 'b) -> 'a -> 'a or_fail
+val info_message : ?id:Async.Writer.Id.t -> string  -> string -> unit

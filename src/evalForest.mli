@@ -18,6 +18,7 @@ type fetch_rep =
 
 type fetch_result = fetch_rep
 
+
 type forest_navigation =
   | Down
   | Up
@@ -46,7 +47,6 @@ and specification =
   | Pred of bool fexp
 
 and 'a fexp = fs -> env -> 'a
-
 and direnv = (path * zipper * local_log) Var.Map.t
 and compenv = string Var.Map.t
 and env = direnv * compenv
@@ -104,6 +104,7 @@ val loop_txn : f:( t -> 'a or_fail) -> specification -> string -> unit -> 'a
 
 val run_txn : f:( t -> 'a or_fail) -> specification -> string -> unit -> ('a,txError) Core.result
 
+val create : specification -> ?p : path -> unit -> t
 
-
+val commit_log: t -> t or_fail
 
