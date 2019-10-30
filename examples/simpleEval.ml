@@ -8,7 +8,7 @@ open Result.Let_syntax
 
 let lines = Fn.compose String.Set.of_list String.split_lines
 
-open ForestIntf.TxForestCoreExn
+open ForestIntf.ForestCoreExn
 [%%txforest {|
 
   d = directory {
@@ -18,8 +18,8 @@ open ForestIntf.TxForestCoreExn
 
 |}]
 
-module TxForest = ForestIntf.TxForestCore
-open TxForest
+module Forest = ForestIntf.ForestCore
+open Forest
 open Derived
 let print_file z = fetch_file z  >>| p "File Contents: %s" >>= fun _ -> mk_ok z
 

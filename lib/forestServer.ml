@@ -2,12 +2,9 @@ open Async
 open Rawforest
 open EvalForest
 open Utils
-(* open Zfs.ZFSUtils *)
-(* open Filesystem *)
 
+let write_struct = Writer.write_marshal ~flags:[]
 
-(*TODO: make this inter act with the filesystem  rather than zfs version*)
-(*TODO: make a shell to interat with this and test it*)
 type command =
   | Forest of forest_command
   | Fetch

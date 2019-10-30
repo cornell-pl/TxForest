@@ -16,8 +16,8 @@ open Result.Let_syntax
 
 |}]
 
-module TxForest = ForestIntf.TxForestS
-open TxForest
+module Forest = ForestIntf.ForestS
+open Forest
 open Derived
 
 type hw = int
@@ -102,7 +102,7 @@ let renorm featmin featmax goalmin goalmax score =
     denom /. div |> Float.round_nearest |> int_of_float |> (+) goalmin
 
  let map_scores ~rn =
-  TxForest.map ~f:(fun z ->
+  Forest.map ~f:(fun z ->
     let%bind z' = down z in
     let%bind score = get_score z' in
     let score_new = rn score in

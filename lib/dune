@@ -17,6 +17,15 @@
   (package forest)
 )
 
+(executable
+  (name forestClient)
+  (public_name forestClient)
+  (libraries core async rawforest forest)
+  (preprocess (pps ppx_jane ppx_forest))
+  (modules ForestClient)
+  (package forest)
+)
+
 ; make add Utils, EvalForest private -> both needed for typing
 ; the ppxed files rn, maybe could expose some of the things
 ; needed in ForestIntf, so that these can be made private

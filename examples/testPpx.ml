@@ -3,7 +3,7 @@ open Rawforest
 open Utils
 open Forest
 open ForestIntf
-open ForestIntf.TxForestCoreExn
+open ForestIntf.ForestCoreExn
 open Result
 
 let i = "index"

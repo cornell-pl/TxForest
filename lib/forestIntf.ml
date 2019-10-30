@@ -287,7 +287,7 @@ module TxForestCoreOpen = struct
       | `Ok (Ok _) -> Result.return (reader,writer)
     )
 
-  let create s ?(port=8765) ?(host="localhost") () : t =
+  let create s ?(port=8765) ?(host="localhost") : t =
     block (
       fun () ->
       Tcp.connect

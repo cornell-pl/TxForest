@@ -25,8 +25,8 @@ open Result.Let_syntax
 
 |}]
 
-module TxForest = ForestIntf.TxForestS
-open TxForest
+module Forest = ForestIntf.ForestS
+open Forest
 open Derived
 
 (* Example directory from main repo
@@ -150,7 +150,7 @@ let update_rubric_and_grades_trans hw problem max_score ~f z =
   let%bind z' = update_rubric problem max_score z' in
   let problem = string_of_int problem in
   goto "students" z'
-  >>= TxForest.map ~f:(fun z ->
+  >>= Forest.map ~f:(fun z ->
       let%bind z' = down z >>= goto "problems" >>= goto_name problem >>= create_path >>= down in
       let score = get_score z' in
       if Result.is_error score
@@ -186,12 +186,12 @@ let check_rubric_and_grade ~hw ?student ?problem ?max_score ?score =
    - T2: Renormalize
  *)
 let set_student_total score z =
-  let open TxForestCore in
+  let open ForestCore in
   goto_name_p "total" z >>= into_opt >>= set_score score
   >>= out >>= up >>= out
 
 let hw_map_totals ~f =
-  TxForest.map ~f:(fun z ->
+  Forest.map ~f:(fun z ->
     let%bind z' = down z in
     let%bind score = student_get_sum z' in
     let score_new = f score in
