@@ -113,7 +113,7 @@ let rec shell_loop n t =
     | Ok t -> shell_loop (n+1) t
 
 let start_client ~port ~host () =
-  block (
+  (* block (
     fun () ->
       let open Async in
       Tcp.connect
@@ -127,7 +127,8 @@ let start_client ~port ~host () =
         | `Eof -> failwith "create: No response from server"
         | `Ok (Error e) -> failwith "create: Returned an error: %s" e
         | `Ok (Ok _) -> shell_loop 0 (reader,writer)
-  )
+  ) *)
+  create s_spec ~port ~host
 
 let () =
   let open Command.Let_syntax in
@@ -141,5 +142,5 @@ let () =
        flag "-host" (optional_with_default "localhost" string)
        ~doc:"Host for shard to connect to (default 'localhost')"
      in
-     fun () -> start_client ~port ~host (); ()
+     fun () -> (start_client ~port ~host () |> shell_loop 0); ()
     ] |> Command.run
