@@ -295,10 +295,12 @@ module TxForestCoreOpen = struct
         |> Tcp.Where_to_connect.of_host_and_port)
       >>= fun (_,reader,writer)
       ->
+        Printf.sprintf "connection established, sending spec";
         write_struct writer s;
+        Printf.sprintf "spec sent";
         Reader.read_marshal reader
         >>| function
-        | `Eof -> failwith "create: No response from ZFS"
+        | `Eof -> failwith "create: No response from Server"
         | `Ok (Error e) -> failwith "create: Returned an error: %s" e
         | `Ok (Ok _) -> (reader,writer)
     )
@@ -367,8 +369,16 @@ module TxForestCoreOpen = struct
 
   (* Other *)
 
-  let verify = failwith "unimplemented"
-  let check = failwith "unimplemented"
+  let verify t =
+(*     let a = fetch t in
+      Printf.sprintf "%s why tho" (show_fetch_rep a); *)
+      failwith "TODO: unimplemented "
+
+
+  let check t =
+(*     let a = fetch t in
+      Printf.sprintf "%s why tho" (show_fetch_rep a); *)
+      failwith "TODO: unimplemented"
 
   module Derived = struct
     open Result.Let_syntax

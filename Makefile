@@ -9,6 +9,7 @@ EXAMPLES= paperExOCaml.exe testPpx.exe simpleEval.exe paperEx.exe simpleEvalSurf
 all: build link
 
 build:
+	export OCAMLRUNPARAM=b
 	dune build --profile release
 
 link: $(EXAMPLES) $(TARGETS)

@@ -1,18 +1,18 @@
 (library
   (public_name forest)
   (name forest)
-  (flags (:standard -w -32))
+  (flags (:standard -w -32 -g))
   (libraries core re str rawforest)
-  (preprocess (pps ppx_deriving.show ppx_deriving.make ppx_jane))
-  (modules ForestIntf)
+  (preprocess (pps ppx_deriving.show ppx_deriving.make ppx_jane ppx_forest))
+  (modules ForestIntf Spec)
 )
 
 
 (executable
   (name forestServer)
   (public_name forestServer)
-  (libraries core async rawforest)
-  (preprocess (pps ppx_jane))
+  (libraries core async rawforest forest)
+  (preprocess (pps ppx_jane ppx_forest))
   (modules ForestServer)
   (package forest)
 )
@@ -20,8 +20,9 @@
 (executable
   (name forestClient)
   (public_name forestClient)
+  (flags (:standard -g))
   (libraries core async rawforest forest)
-  (preprocess (pps ppx_jane ppx_forest))
+  (preprocess (pps ppx_jane))
   (modules ForestClient)
   (package forest)
 )

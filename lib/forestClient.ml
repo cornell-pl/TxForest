@@ -7,26 +7,36 @@ open Result
 open Forest
 open ForestIntf
 
+let () = Printexc.record_backtrace true
 
 
-open ForestCoreExn
-(* Helper functions *)
 
-[%%txforest {|
-
-  s = [x :: file | x <- matches GL "*.txt"]
-
-|}]
-
-open TxForestCore
 
 let norm_write s =
   let open Out_channel in
   output_string stdout s;
   flush stdout
 
-let memory_table = Int.Table.create ()
 let write = ref norm_write
+
+let write_endline s = !write (s ^ "\n")
+let write_format format = Core.Printf.ksprintf write_endline format
+
+(*
+
+
+
+
+(* Helper functions *)
+
+
+
+open TxForestCore
+
+
+
+let memory_table = Int.Table.create ()
+
 
 let make_prompt t = "> "
 
@@ -42,8 +52,7 @@ let read_and_prompt n t =
     Int.Table.set ~key:n ~data:input memory_table;
     input
 
-let write_endline s = !write (s ^ "\n")
-let write_format format = Core.Printf.ksprintf write_endline format
+
 
 let mk_error format = Core.Printf.ksprintf (fun s -> Error s) format
 
@@ -111,7 +120,7 @@ let rec shell_loop n t =
       write_format "Error: %s" s;
       shell_loop (n+1) t
     | Ok t -> shell_loop (n+1) t
-
+*)
 let start_client ~port ~host () =
   (* block (
     fun () ->
@@ -128,7 +137,8 @@ let start_client ~port ~host () =
         | `Ok (Error e) -> failwith "create: Returned an error: %s" e
         | `Ok (Ok _) -> shell_loop 0 (reader,writer)
   ) *)
-  create s_spec ~port ~host
+  write_endline "Forest Client";
+  TxForestCore.create "universal" ~port ~host
 
 let () =
   let open Command.Let_syntax in
@@ -142,5 +152,5 @@ let () =
        flag "-host" (optional_with_default "localhost" string)
        ~doc:"Host for shard to connect to (default 'localhost')"
      in
-     fun () -> (start_client ~port ~host () |> shell_loop 0); ()
+     fun () -> start_client ~port ~host (); (*|> shell_loop 0);*) ()
     ] |> Command.run

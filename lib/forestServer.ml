@@ -3,6 +3,8 @@ open Rawforest
 open EvalForest
 open Utils
 
+
+
 let write_struct = Writer.write_marshal ~flags:[]
 
 type command =
@@ -28,11 +30,16 @@ module Server = struct
     | `Eof -> return init
     | `Ok command -> f command
 
-  let rec read_spec reader =
-    Reader.read_marshal reader
-    >>= function
-    | `Eof -> read_spec reader
-    | `Ok s -> s
+    let rec read_spec id reader =
+      let debug = info_message ~id:id "C" in
+      debug "Reading spec";
+      Reader.read_marshal reader
+      >>= function
+      | `Eof -> read_spec id reader
+      | `Ok s -> begin
+        debug "Spec read";
+        return (Forest.Spec.name_to_spec s)
+      end
 
 
   let rec run_loop reader writer context =
@@ -54,9 +61,9 @@ module Server = struct
       (fun _ reader writer ->
         let debug = info_message ~id:(Writer.id writer) "C" in
         debug "Connected to server";
-        let spec = read_spec reader in
-        let context = spec >>| (fun s -> create s ~p:path ()) in
-        context >>| write_struct writer;
+        let spec = read_spec (Writer.id writer) reader in
+        let context = spec >>| (fun s -> EvalForest.create s ~p:path ()) in
+        context >>| (fun c -> write_struct writer (Ok ()));
         context >>= run_loop reader writer
         >>| fun context -> commit_log context; debug "Disconnected from server"
         )
