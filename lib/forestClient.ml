@@ -22,16 +22,12 @@ let write = ref norm_write
 let write_endline s = !write (s ^ "\n")
 let write_format format = Core.Printf.ksprintf write_endline format
 
-(*
+
 
 
 
 
 (* Helper functions *)
-
-
-
-open TxForestCore
 
 
 
@@ -51,8 +47,6 @@ let read_and_prompt n t =
     in
     Int.Table.set ~key:n ~data:input memory_table;
     input
-
-
 
 let mk_error format = Core.Printf.ksprintf (fun s -> Error s) format
 
@@ -78,19 +72,19 @@ let rec fscommands =
     | hd :: [] -> goto hd t >>= f
     | _ -> mal_exp
   in
-  let fetch = argE ~f:(fun t -> fetch t |> print_node; return t) in
+  let fetch = argE ~f:(fun t -> TxForestCore.fetch t |> print_node; return t) in
   [
     "cd", arg1 ~f:goto;
     "ls", fetch;
     "cat", fetch;
     "fetch", fetch;
-    "update", arg1 ~f:store_file;
-    "prev", arg0 ~f:prev;
-    "next", arg0 ~f:next;
-    "up", arg0 ~f:up;
-    "down", arg0 ~f:down;
-    "touch", arg0 ~f:(store_file "");
-    "mkdir", arg0 ~f:(store_dir String.Set.empty);
+    "update", arg1 ~f:TxForestCore.store_file;
+    "prev", arg0 ~f:TxForestCore.prev;
+    "next", arg0 ~f:TxForestCore.next;
+    "up", arg0 ~f:TxForestCore.up;
+    "down", arg0 ~f:TxForestCore.down;
+    "touch", arg0 ~f:(TxForestCore.store_file "");
+    "mkdir", arg0 ~f:(TxForestCore.store_dir String.Set.empty);
 (*     "rm", arg1 ~f:(remove_child); *)
     "quit", arg0 ~f:return;
     "help", help;
@@ -120,7 +114,7 @@ let rec shell_loop n t =
       write_format "Error: %s" s;
       shell_loop (n+1) t
     | Ok t -> shell_loop (n+1) t
-*)
+
 let start_client ~port ~host () =
   (* block (
     fun () ->
@@ -152,5 +146,5 @@ let () =
        flag "-host" (optional_with_default "localhost" string)
        ~doc:"Host for shard to connect to (default 'localhost')"
      in
-     fun () -> start_client ~port ~host (); (*|> shell_loop 0);*) ()
+     fun () -> (start_client ~port ~host () |> shell_loop 0); ()
     ] |> Command.run
