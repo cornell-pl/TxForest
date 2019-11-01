@@ -1,4 +1,4 @@
-TARGETS=forest_server.exe
+TARGETS= forestServer.exe forestClient.exe
 EXAMPLES= paperExOCaml.exe testPpx.exe simpleEval.exe paperEx.exe simpleEvalSurf.exe \
 					paperExOld.exe
 					# grades.exe shelter.exe simple.exe  dependency.exe
