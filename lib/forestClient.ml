@@ -20,11 +20,16 @@ let norm_write s =
 let write = ref norm_write
 
 let write_endline s = !write (s ^ "\n")
+let write_space s = !write (s ^ "  ")
+
 let write_format format = Core.Printf.ksprintf write_endline format
 
 
 
-
+let write_fetch fr =
+  match fr with
+    | Ok fr -> write_endline (show_fetch_rep fr)
+    | Error u -> write_endline u
 
 
 (* Helper functions *)
@@ -55,8 +60,6 @@ let mk_error format = Core.Printf.ksprintf (fun s -> Error s) format
 let rec fscommands =
   let open Result in
   let mal_exp = mk_error "Malformed expression" in
-  let print_node n = show_fetch_rep n |> write_endline
-  in
   (*TODO: this obviously needs to actually do the thing*)
   let goto p t = Ok t in
   let arg0 ~f t = function
@@ -72,11 +75,23 @@ let rec fscommands =
     | hd :: [] -> goto hd t >>= f
     | _ -> mal_exp
   in
-  let fetch = argE ~f:(fun t -> TxForestCore.fetch t |> print_node; return t) in
+  let fetch = argE ~f:(fun t -> TxForestCore.fetch t |> write_fetch; return t) in
+  let lst = argE ~f:(fun t ->
+    (match TxForestCore.fetch t with
+    | Ok (DirRep s)
+    | Ok (CompRep s) -> String.Set.iter s ~f:(fun u -> write_space u); write_endline ""
+    | _ -> ()
+    ); return t) in
+  let cat = argE ~f:(fun t ->
+    (match TxForestCore.fetch t with
+    | Ok(FileRep s) -> write_endline s
+    | _ -> ()
+    ); return t) in
+
   [
-    "cd", arg1 ~f:goto;
-    "ls", fetch;
-    "cat", fetch;
+    "cd", arg1 ~f:TxForestCore.goto_name;
+    "ls", lst;
+    "cat", cat;
     "fetch", fetch;
     "update", arg1 ~f:TxForestCore.store_file;
     "prev", arg0 ~f:TxForestCore.prev;
