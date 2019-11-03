@@ -13,6 +13,11 @@ type command =
 
 module Server = struct
 
+  let print_fetch fr =
+    match fr with
+      | Ok fr -> info_message "S" (show_fetch_rep fr)
+      | Error u -> info_message "S" u
+
   let eval_command c context writer =
     match c with
     | Forest fc -> begin
@@ -21,7 +26,10 @@ module Server = struct
       | Error e -> write_struct writer (Error "error in transaction"); context
     end
     | Fetch -> begin
-       write_struct writer (fetch context); context
+      let fr = fetch context in
+        print_fetch fr;
+        write_struct writer fr;
+        context
     end
 
   let read_and_run reader ~init ~f =

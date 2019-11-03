@@ -323,7 +323,7 @@ module TxForestCoreOpen = struct
   let create_path = send_and_receive (Forest (Update Create_Path))
 
   (* Fetches *)
-  let fetch (reader, writer) =
+  let fetch (reader, writer) :fetch_result out=
     block
     ( fun () ->
       write_struct writer Fetch;

@@ -321,7 +321,11 @@ let commit (fc : forest_command) ((ctxt, fs, _): t) : t or_fail =
     mk_err "Conflict when trying to commit command"
   end
 
-
+let async_print t =
+  let open Async in
+  match fetch t with
+    | Ok fr -> info_message "TXForest" (show_fetch_result fr)
+    | Error u -> info_message "TXForest" u
 
 
 let print t =
@@ -402,6 +406,8 @@ let create (s:specification) ?(p: path option) () : t=
   let fs = match TempFS.create TempFS.dummy_path with Ok (fs, p) -> fs | _ -> failwith "unable t make fs" in
   let l = ref [] in
   let t = (ctxt, fs, l) in
+    async_print t;
+(*     (Printf.printf "Spec: %s\n" (show_specification s));  *)
     t
 
 
