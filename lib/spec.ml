@@ -6,7 +6,10 @@ open ForestCoreExn
 
 
 [%%txforest {|
-    univ = [x :: univ option | x <- matches GL "*"]
+    univ = directory {
+      files is [x :: file | x <- matches GL "*" ];
+      dirs is [x :: univ option | x <- matches GL "*"];
+    }
 |}]
 
 
