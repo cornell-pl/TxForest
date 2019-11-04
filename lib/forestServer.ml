@@ -18,17 +18,20 @@ module Server = struct
       | Ok fr -> info_message "S" (show_fetch_rep fr)
       | Error u -> info_message "S" u
 
+
+
+
   let eval_command c context writer =
     match c with
     | Forest fc -> begin
       match eval_forest_command fc context with
-      | Ok context' -> write_struct writer (Ok context'); context'
-      | Error e -> write_struct writer (Error "error in transaction"); context
+      | Ok context' -> write_struct writer (Ok ()); context'
+      | Error e -> write_struct writer (Error e); context
     end
     | Fetch -> begin
       let fr = fetch context in
         print_fetch fr;
-        write_struct writer fr;
+        write_struct writer (let open Core.Result in fr >>| writable_of_fetch);
         context
     end
 
@@ -38,16 +41,16 @@ module Server = struct
     | `Eof -> return init
     | `Ok command -> f command
 
-    let rec read_spec id reader =
-      let debug = info_message ~id:id "C" in
-      debug "Reading spec";
-      Reader.read_marshal reader
-      >>= function
-      | `Eof -> read_spec id reader
-      | `Ok s -> begin
-        debug "Spec read";
-        return (Forest.Spec.name_to_spec s)
-      end
+  let rec read_spec id reader =
+    let debug = info_message ~id:id "C" in
+    debug "Reading spec";
+    Reader.read_marshal reader
+    >>= function
+    | `Eof -> read_spec id reader
+    | `Ok s -> begin
+      debug "Spec read";
+      return (Forest.Spec.name_to_spec s)
+    end
 
 
   let rec run_loop reader writer context =

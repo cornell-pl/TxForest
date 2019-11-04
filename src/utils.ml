@@ -30,6 +30,25 @@ type le =
 
 type log = le list
 
+type fetch_rep =
+  | FileRep of string
+  | DirRep of SSet.t
+  | PathRep of name
+  | PairRep of Var.t
+  | CompRep of SSet.t
+  | OptRep of bool
+  | PredRep of bool
+  | NullRep [@@deriving show]
+
+type writeable_fetch_rep =
+  | WFileRep of string
+  | WDirRep of string list
+  | WPathRep of name
+  | WPairRep of Var.t
+  | WCompRep of string list
+  | WOptRep of bool
+  | WPredRep of bool
+  | WNullRep [@@deriving show]
 
 (* Helper functions *)
 let debug = ref false
@@ -55,3 +74,26 @@ let info_message ?id smsg input =
   | None -> print_endline (Printf.sprintf "%s - %s" smsg input)
   | Some id -> print_endline (Printf.sprintf "%s - %s: %s" smsg (Async.Writer.Id.to_string id) input)
 
+
+
+let writable_of_fetch fr =
+  match fr with
+  | FileRep s -> WFileRep s
+  | DirRep s -> WDirRep (String.Set.to_list s)
+  | PathRep n -> WPathRep n
+  | PairRep v -> WPairRep v
+  | CompRep s -> WCompRep (String.Set.to_list s)
+  | OptRep b -> WOptRep b
+  | PredRep b -> WPredRep b
+  | NullRep -> WNullRep
+
+let fetch_of_writable wf =
+  match wf with
+  | WFileRep s -> FileRep s
+  | WDirRep s -> DirRep (String.Set.of_list s)
+  | WPathRep n -> PathRep n
+  | WPairRep v -> PairRep v
+  | WCompRep s -> CompRep (String.Set.of_list s)
+  | WOptRep b -> OptRep b
+  | WPredRep b -> PredRep b
+  | WNullRep -> NullRep

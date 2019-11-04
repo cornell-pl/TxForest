@@ -89,7 +89,7 @@ let check_path_preconditions (((fs, working_path, l), p): t) :t or_fail=
     else if not (is_dir_helper fs parent_dir) then
       mk_err "path precondition check - parent of curent path ( %s ) is not a drectory" p
     else if (!working_path) <> parent_dir then
-      mk_err "path precondition check - working directory ( %s ) does not match parent of current path ( %s )" (!working_path) p
+      mk_err "path precondition check - working directory ( %s ) does not match parent ( %s ) of current path ( %s )" (!working_path) parent_dir p
     else
       mk_ok ((fs, working_path, l), p)
 

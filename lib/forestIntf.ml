@@ -42,7 +42,7 @@ module Var = Utils.Var
 
 type name = Utils.name
 
-type fetch_rep = EvalForest.fetch_rep =
+type fetch_rep = Utils.fetch_rep =
   | FileRep of string
   | DirRep of SSet.t
   | PathRep of name
@@ -330,7 +330,11 @@ module TxForestCoreOpen = struct
       Reader.read_marshal reader
       >>| function
       | `Eof -> failwith "send_and_receive: No response from TxForest"
-      | `Ok r -> r
+      | `Ok r -> begin
+        let open Core.Result in
+        let r : writeable_fetch_rep out = r in
+          r >>| fetch_of_writable
+      end
     )
 
   open Core.Result

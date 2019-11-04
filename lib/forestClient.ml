@@ -98,6 +98,10 @@ let rec fscommands =
     "next", arg0 ~f:TxForestCore.next;
     "up", arg0 ~f:TxForestCore.up;
     "down", arg0 ~f:TxForestCore.down;
+    "into_pair", arg0 ~f:TxForestCore.into_pair;
+    "into_comp", arg0 ~f:TxForestCore.into_comp;
+    "into_opt", arg0 ~f:TxForestCore.into_opt;
+    "out", arg0 ~f:TxForestCore.out;
     "touch", arg0 ~f:(TxForestCore.store_file "");
     "mkdir", arg0 ~f:(TxForestCore.store_dir String.Set.empty);
 (*     "rm", arg1 ~f:(remove_child); *)

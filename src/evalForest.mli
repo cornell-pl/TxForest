@@ -6,17 +6,9 @@ open Utils
 type fs
 type local_log = log ref
 
-type fetch_rep =
-  | FileRep of string
-  | DirRep of SSet.t
-  | PathRep of name
-  | PairRep of Var.t
-  | CompRep of SSet.t
-  | OptRep of bool
-  | PredRep of bool
-  | NullRep [@@deriving show]
 
-type fetch_result = fetch_rep
+
+type fetch_result = Utils.fetch_rep
 
 
 type forest_navigation =

@@ -14,17 +14,8 @@ type fs = TempFS.fs
 
 type local_log = log ref
 
-type fetch_rep =
-  | FileRep of string
-  | DirRep of SSet.t
-  | PathRep of name
-  | PairRep of Var.t
-  | CompRep of SSet.t
-  | OptRep of bool
-  | PredRep of bool
-  | NullRep [@@deriving show]
 
-type fetch_result = fetch_rep [@@deriving show]
+type fetch_result = Utils.fetch_rep [@@deriving show]
 
 type forest_navigation =
   | Down
@@ -403,7 +394,7 @@ let create (s:specification) ?(p: path option) () : t=
   let ps = PathSet.singleton p in
   let z = make_zipper (empty_env, s) in
   let ctxt = (p, ps, z) in
-  let fs = match TempFS.create TempFS.dummy_path with Ok (fs, p) -> fs | _ -> failwith "unable t make fs" in
+  let fs = match TempFS.create p with Ok (fs, p) -> fs | _ -> failwith "unable t make fs" in
   let l = ref [] in
   let t = (ctxt, fs, l) in
     async_print t;

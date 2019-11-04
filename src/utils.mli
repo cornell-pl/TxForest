@@ -19,6 +19,26 @@ type contents = Dir of string list | File of string
 
 type path = string
 
+type fetch_rep =
+  | FileRep of string
+  | DirRep of SSet.t
+  | PathRep of name
+  | PairRep of Var.t
+  | CompRep of SSet.t
+  | OptRep of bool
+  | PredRep of bool
+  | NullRep [@@deriving show]
+
+type writeable_fetch_rep =
+  | WFileRep of string
+  | WDirRep of string list
+  | WPathRep of name
+  | WPairRep of Var.t
+  | WCompRep of string list
+  | WOptRep of bool
+  | WPredRep of bool
+  | WNullRep [@@deriving show]
+
 (* log_entry
  * Read (past tense) contents at path
  * Wrote second contents at path where there use to be first contents
@@ -48,3 +68,6 @@ val mk_ok : 'a -> 'a or_fail
 val ignore_ret : 'a -> 'b -> 'a or_fail
 val f_ret : f:('a -> 'b) -> 'a -> 'a or_fail
 val info_message : ?id:Async.Writer.Id.t -> string  -> string -> unit
+val writable_of_fetch: fetch_rep -> writeable_fetch_rep
+val fetch_of_writable: writeable_fetch_rep -> fetch_rep
+
