@@ -14,18 +14,24 @@ Exposed Class hiearchy:
     Forest(spec: Spec, path: string)
       - up
       - down
+      - into
       - into____
+      - ...
       - out
       - next
       - prev
       - fetch
-      - fetch_file
-      - fetch ...
+      - fetch_____
       - ...
       - store_file
       - store_dir
       - create_path
       - commit
+    some other nice things not in the core
+      - goto_name
+      - goto_position
+      - fold
+      - map
 
 Background Classes:
 
@@ -34,14 +40,21 @@ Background Classes:
       - down
       - left
       - right
-      - goto
+      - goto_name
 
+    Log(path: string)
 
+    Env()
+
+    FileSystem(path : string)
+      PosixFileSystem(path : string)
+      InMemoryFileSystem(path : string)
 
 Example:
 
+Ocaml Version:
 ```
-  d = directory {
+  spec = directory {
     index is "index.txt" :: file;
     dir is "dir" :: [x :: file | x <- $down index |> fetch_file |> lines$ ]
   }
@@ -55,31 +68,54 @@ Example:
     >>= print_file
 ```
 
-
+Python Version:
 ```
 spec =
-  Pair(
-    'd',
     Pair(
       'index'
-      Path(_ -> 'index.txt', File()),
+      Path(lambda x : 'index.txt', File()),
       Pair(
         'dir',
-        Path(_ -> 'dir', Comp(Path(env -> env['x'], File()), 'x', env, fs -> lines (fetch_file (down env['index'])),
+        Path(
+          lambda x : 'dir',
+          Comp(
+            Path(lambda env : env['x'], File()),
+            'x',
+            lambda env fs : lines (fetch_file (down env['index'])),
         null
       )
-    ),
-    null
-  )
+    )
 
 
-function get_info_for_name (name : string) (f : Forest) =
-  forest.into_pair()
+function get_info_for_name (name : string) (forest : Forest) =
   forest.into_pair()
   forest.next()
   forest.into_pair()
-  forest.goto(name)
+  forest.down()
+  forest.goto_name(name)
+  forest.down()
   print forest.fetch_file()
+```
+
+
+To make this a little nicer we can add `Directory(specs : string,Spec list)` to the Spec, which we just turn into the dpairs this chould make the spec looks a little nicer
+
+
+```
+spec =
+    Directory([
+      ('index', Path(lambda x : 'index.txt', File())),
+      ('dir',
+        Path(
+          lambda x : 'dir',
+          Comp(
+            Path(lambda env : env['x'], File()),
+            'x',
+            lambda env fs : lines (fetch_file (down env['index'])),
+          )
+        )
+      )
+    ])
 ```
 
 
