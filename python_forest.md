@@ -6,10 +6,11 @@ Exposed Class hiearchy:
     Spec()
       File()
       Dir()
-      Path(name : env -> string , sub_spec : Spec )
-      Pair(var : string , sub_spec1 : Spec, sub_spec2 : Spec)
-      Comp(sub_spec : Spec, var : string, membership_function : fs, env -> string list)
+      Path(name : string , sub_spec : Spec )
+      Pair(sub_spec1 : Spec, x_to_sub_spec2 : Spec -> Spec)
+      Comp(x_to_sub_spec : Spec -> Spec, membership_function : fs, env -> string list)
       Opt(sub_spec : Spec)
+      Pred(test : fs, env -> string list)
 
     Forest(spec: Spec, path: string)
       - up
@@ -72,17 +73,16 @@ Python Version:
 ```
 spec =
     Pair(
-      'index'
-      Path(lambda x : 'index.txt', File()),
-      Pair(
-        'dir',
+      Path('index.txt', File()),
+      lambda index : Pair(
         Path(
-          lambda x : 'dir',
+          'dir',
           Comp(
-            Path(lambda env : env['x'], File()),
-            'x',
-            lambda env fs : lines (fetch_file (down env['index'])),
-        null
+            lambda x : Path(x, File()),
+            lambda () : lines (fetch_file (down index))
+          )
+        ),
+        lambda x : null
       )
     )
 
@@ -118,8 +118,13 @@ spec =
     ])
 ```
 
+For comprehensions we could also have subclasses like `RegexComp` or `GlobComp` to help make writing things like this more suscinct
 
 
+- higher order abstract syntax
+- make the second part of the pair a function and the first part of the comprehension a function instead, so that the variables are more natural
+to work with
+- add back predicates
 
 
 
