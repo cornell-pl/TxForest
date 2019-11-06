@@ -63,16 +63,16 @@ let rec fscommands =
   (*TODO: this obviously needs to actually do the thing*)
   let goto p t = Ok t in
   let arg0 ~f t = function
-    | [] -> f t
+    | [] -> f t >>= TxForestCore.commit
     | _ -> mal_exp
   in
   let arg1 ~f t = function
-    | hd :: [] -> f hd t
+    | hd :: [] -> f hd t >>= TxForestCore.commit
     | _ -> mal_exp
   in
   let argE ~f t = function
     | [] -> f t
-    | hd :: [] -> goto hd t >>= f
+    | hd :: [] -> goto hd t >>= f >>= TxForestCore.commit
     | _ -> mal_exp
   in
   let fetch = argE ~f:(fun t -> TxForestCore.fetch t |> write_fetch; return t) in

@@ -10,6 +10,7 @@ let write_struct = Writer.write_marshal ~flags:[]
 type command =
   | Forest of forest_command
   | Fetch
+  | Commit
 
 module Server = struct
 
@@ -33,6 +34,11 @@ module Server = struct
         print_fetch fr;
         write_struct writer (let open Core.Result in fr >>| writable_of_fetch);
         context
+    end
+    | Commit -> begin
+      match commit_log context with
+      | Ok context' -> write_struct writer (Ok ()); context'
+      | Error e -> write_struct writer (Error e); context
     end
 
   let read_and_run reader ~init ~f =

@@ -65,6 +65,7 @@ type specification = EvalForest.specification =
 type command =
   | Forest of forest_command
   | Fetch
+  | Commit
 
 type t = EvalForest.t
 
@@ -370,6 +371,8 @@ module TxForestCoreOpen = struct
   let is_null t = fetch t >>| function
   | NullRep -> true
   | _ -> false
+
+  let commit = send_and_receive Commit
 
   (* Other *)
 
