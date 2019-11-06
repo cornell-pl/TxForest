@@ -8,9 +8,9 @@ Exposed Class hiearchy:
       Dir()
       Path(name : string , sub_spec : Spec )
       Pair(sub_spec1 : Spec, x_to_sub_spec2 : Spec -> Spec)
-      Comp(x_to_sub_spec : Spec -> Spec, membership_function : fs, env -> string list)
+      Comp(x_to_sub_spec : Spec -> Spec, membership_function : () -> string list)
       Opt(sub_spec : Spec)
-      Pred(test : fs, env -> string list)
+      Pred(test : () -> string list)
 
     Forest(spec: Spec, path: string)
       - up
@@ -98,21 +98,18 @@ function get_info_for_name (name : string) (forest : Forest) =
 ```
 
 
-To make this a little nicer we can add `Directory(specs : string,Spec list)` to the Spec, which we just turn into the dpairs this chould make the spec looks a little nicer
+To make this a little nicer we can add `Directory(specs : string,Spec list)` to the Spec, which we just turn into the dpairs this chould make the spec looks a little nicer, not sure if this is possible with higher order embeding
 
 
 ```
 spec =
     Directory([
-      ('index', Path(lambda x : 'index.txt', File())),
-      ('dir',
-        Path(
-          lambda x : 'dir',
-          Comp(
-            Path(lambda env : env['x'], File()),
-            'x',
-            lambda env fs : lines (fetch_file (down env['index'])),
-          )
+      lambda () : Path(lambda x : 'index.txt', File()),
+      lambda () : Path(
+        'dir',
+        Comp(
+          lambda x : Path(x, File()),
+          lambda () : lines (fetch_file (down d0)),
         )
       )
     ])
