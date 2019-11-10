@@ -62,7 +62,7 @@ module Server = struct
 
 let () =
   let open Command.Let_syntax in
-  Command.basic
+  Command.async
     ~summary:"Start filesystem client (MAKE SURE TO START SERVER FIRST!)"
     [%map_open
       let port =
@@ -71,7 +71,6 @@ let () =
       in
       (fun () ->
         info_message "S" "Starting server";
-        Server.start_server ~port;
-        ()
+        Server.start_server ~port
       )
     ] |> Command.run
