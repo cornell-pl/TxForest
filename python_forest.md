@@ -102,17 +102,17 @@ To make this a little nicer we can add `Directory(specs : string,Spec list)` to 
 
 
 ```
-spec =
-    Directory([
-      lambda () : Path(lambda x : 'index.txt', File()),
-      lambda () : Path(
-        'dir',
-        Comp(
-          lambda x : Path(x, File()),
-          lambda () : lines (fetch_file (down d0)),
-        )
-      )
-    ])
+spec = Directory()
+spec.addToDirectory('index', lambda () : Path(lambda x : 'index.txt', File()))
+spec.addToDirectory('dir', lambda () :
+  Path(
+    'dir',
+    Comp(
+      lambda x : Path(x, File()),
+      lambda () : lines (fetch_file (down spec['index'])),
+    )
+  )
+)
 ```
 
 For comprehensions we could also have subclasses like `RegexComp` or `GlobComp` to help make writing things like this more suscinct
