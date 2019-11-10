@@ -6,11 +6,17 @@ open Core
 open Result
 open Forest
 open ForestIntf
+open TxForestCore
+
+[%%txforest {|
+    univ = directory {
+      files is [x :: file | x <- matches GL "*"];
+      dirs is [x :: univ | x <- matches GL "*"];
+    }
+|}]
+
 
 let () = Printexc.record_backtrace true
-
-
-
 
 let norm_write s =
   let open Out_channel in
@@ -62,17 +68,17 @@ let rec fscommands =
   let mal_exp = mk_error "Malformed expression" in
   (*TODO: this obviously needs to actually do the thing*)
   let goto p t = Ok t in
-  let arg0 ~f t = function
-    | [] -> f t >>= TxForestCore.commit
+  let arg0 ~f (t, reader, writer) = function
+    | [] -> f t >>= (fun t -> TxForestCore.commit (t, reader, writer) )
     | _ -> mal_exp
   in
-  let arg1 ~f t = function
-    | hd :: [] -> f hd t >>= TxForestCore.commit
+  let arg1 ~f (t, reader, writer) = function
+    | hd :: [] -> f hd t >>= (fun t -> TxForestCore.commit (t, reader, writer) )
     | _ -> mal_exp
   in
-  let argE ~f t = function
+  let argE ~f (t, reader, writer) = function
     | [] -> f t
-    | hd :: [] -> goto hd t >>= f >>= TxForestCore.commit
+    | hd :: [] -> goto hd t >>= f >>= (fun t -> TxForestCore.commit (t, reader, writer))
     | _ -> mal_exp
   in
   let fetch = argE ~f:(fun t -> TxForestCore.fetch t |> write_fetch; return t) in
@@ -134,7 +140,7 @@ let rec shell_loop n t =
       shell_loop (n+1) t
     | Ok t -> shell_loop (n+1) t
 
-let start_client ~port ~host () =
+let start_client p ~port ~host () =
   (* block (
     fun () ->
       let open Async in
@@ -151,19 +157,22 @@ let start_client ~port ~host () =
         | `Ok (Ok _) -> shell_loop 0 (reader,writer)
   ) *)
   write_endline "Forest Client";
-  TxForestCore.create "universal" ~port ~host
+  TxForestCore.create univ p ~port ~host ()
 
 let () =
   let open Command.Let_syntax in
   Command.basic
     ~summary:"Start filesystem client (MAKE SURE TO START SERVER FIRST!)"
     [%map_open
-     let port =
+      let path =
+      flag "-path" (required string)
+      ~doc:"path for the client"
+     and port =
       flag "-port" (optional_with_default 8765 int)
       ~doc:"Port to listen on or connect to (if shard) (default 8765)"
      and host =
        flag "-host" (optional_with_default "localhost" string)
        ~doc:"Host for shard to connect to (default 'localhost')"
      in
-     fun () -> (start_client ~port ~host () |> shell_loop 0); ()
+     fun () -> (start_client path ~port ~host () |> shell_loop 0); ()
     ] |> Command.run

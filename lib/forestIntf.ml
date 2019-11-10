@@ -63,9 +63,8 @@ type specification = EvalForest.specification =
   | Pred of bool fexp
 
 type command =
-  | Forest of forest_command
-  | Fetch
-  | Commit
+  | Commit of log
+  | CommitFinished
 
 type t = EvalForest.t
 
@@ -262,180 +261,53 @@ module ForestCore  = struct
 end
 
 module TxForestCoreOpen = struct
+
+  include ForestCoreOpen
+
   open Async
-
-  type t = Reader.t * Writer.t
-
-  type 'a out = 'a or_fail
-
-  module type Derived = sig
-    val goto_pos : int -> t -> t out
-    val goto_name : name -> t -> t out
-  end
-
   let write_struct = Writer.write_marshal ~flags:[]
   let block = Thread_safe.block_on_async_exn
 
-  let send_and_receive : command -> t -> t out
-  = fun command (reader,writer) ->
-    block
-    ( fun () ->
-      write_struct writer command;
-      Reader.read_marshal reader
-      >>| function
-      | `Eof -> failwith "send_and_receive: No response from TxForest"
-      | `Ok (Error e) -> Result.fail e
-      | `Ok (Ok _) -> Result.return (reader,writer)
-    )
+  let send_and_receive : command -> (t * Reader.t * Writer.t) -> (t * Reader.t * Writer.t) out
+    = fun command (t, reader,writer) ->
+      block
+      ( fun () ->
+        write_struct writer command;
+        Reader.read_marshal reader
+        >>| function
+        | `Eof -> failwith "send_and_receive: No response from TxForest"
+        | `Ok (Error e) -> Result.fail e
+        | `Ok (Ok _) -> Result.return (t, reader,writer)
+      )
 
-  let create s ?(port=8765) ?(host="localhost") : t =
+  let create s p ?(port=8765) ?(host="localhost") () : (t * Reader.t * Writer.t) =
     block (
       fun () ->
       Tcp.connect
         (Core.Host_and_port.create ~host ~port
         |> Tcp.Where_to_connect.of_host_and_port)
-      >>= fun (_,reader,writer)
-      ->
-        Printf.sprintf "connection established, sending spec";
-        write_struct writer s;
-        Printf.sprintf "spec sent";
+      >>= (fun (_,reader,writer) ->
         Reader.read_marshal reader
         >>| function
-        | `Eof -> failwith "create: No response from Server"
-        | `Ok (Error e) -> failwith "create: Returned an error: %s" e
-        | `Ok (Ok _) -> (reader,writer)
+        | `Eof -> failwith "create: No response from Forest Server"
+        | `Ok _ -> begin
+          let t = EvalForest.create s ~p:p () in
+            (t, reader,writer)
+        end
+      )
     )
 
-  (* Standard Navigations *)
-  let down = send_and_receive (Forest (Nav Down))
-  let up = send_and_receive (Forest (Nav Up))
-
-  let into_opt =  send_and_receive (Forest (Nav Into_Opt))
-  let into_pair = send_and_receive (Forest (Nav Into_Pair))
-  let into_comp = send_and_receive (Forest (Nav Into_Comp))
-  let out = send_and_receive (Forest (Nav Out))
-
-  let next = send_and_receive (Forest (Nav Next))
-  let prev = send_and_receive (Forest (Nav Prev))
-
-  (* Updates *)
-  let store_file (u: string) = send_and_receive (Forest (Update (Store_File (fun _ _ -> u) )))
-  let store_dir (l: SSet.t) = send_and_receive (Forest (Update (Store_Dir (fun _ _ -> l))))
-  let create_path = send_and_receive (Forest (Update Create_Path))
-
-  (* Fetches *)
-  let fetch (reader, writer) :fetch_result out=
-    block
-    ( fun () ->
-      write_struct writer Fetch;
-      Reader.read_marshal reader
-      >>| function
-      | `Eof -> failwith "send_and_receive: No response from TxForest"
-      | `Ok r -> begin
-        let open Core.Result in
-        let r : writeable_fetch_rep out = r in
-          r >>| fetch_of_writable
-      end
+  open Result
+  open Result.Let_syntax
+  let commit (t, reader, writer) =
+    send_and_receive (Commit (get_log t)) (t, reader, writer)
+    >>= (fun (t, reader, writer) ->
+      let%bind t = EvalForest.commit t in
+        send_and_receive CommitFinished (t, reader, writer)
+        >>= (fun (t, reader, writer) ->
+          mk_ok (t, reader, writer)
+        )
     )
-
-  open Core.Result
-  let fetch_file t = fetch t >>= function
-  | FileRep u -> mk_ok u
-  | _ -> mk_err  "Fetch_file can only be used at a file node"
-
-  let fetch_dir t = fetch t >>= function
-  | DirRep l -> mk_ok l
-  | _ -> mk_err  "Fetch_dir can only be used at a dir node"
-
-  let fetch_path t = fetch t >>= function
-  | PathRep u -> mk_ok u
-  | _ -> mk_err  "Fetch_path can only be used at a path node"
-
-  let fetch_pair t = fetch t >>= function
-  | PairRep x -> mk_ok x
-  | _ -> mk_err  "Fetch_pair can only be used at a pair node"
-
-  let fetch_comp t = fetch t >>= function
-  | CompRep l -> mk_ok l
-  | _ -> mk_err  "Fetch_comp can only be used at a comp node"
-
-  let fetch_opt t = fetch t >>= function
-  | OptRep b -> mk_ok b
-  | _ -> mk_err  "Fetch_opt can only be used at a opt node"
-
-  let fetch_pred t = fetch t >>= function
-  | PredRep b -> mk_ok b
-  | _ -> mk_err  "Fetch_pred can only be used at a pred node"
-
-
-  let is_null t = fetch t >>| function
-  | NullRep -> true
-  | _ -> false
-
-  let commit = send_and_receive Commit
-
-  (* Other *)
-
-  let verify t =
-(*     let a = fetch t in
-      Printf.sprintf "%s why tho" (show_fetch_rep a); *)
-      failwith "TODO: unimplemented "
-
-
-  let check t =
-(*     let a = fetch t in
-      Printf.sprintf "%s why tho" (show_fetch_rep a); *)
-      failwith "TODO: unimplemented"
-
-  module Derived = struct
-    open Result.Let_syntax
-    (* Derived Navigations *)
-    let goto_comp_pos pos t =
-      let rec keep_going pos t =
-        if pos > 0
-        then next t >>= keep_going (pos-1)
-        else mk_ok t
-      in
-        into_comp t >>= keep_going pos
-
-
-
-    let goto_comp_name u t =
-      let%bind l = fetch_comp t >>| Set.to_list in
-      let o = Core.List.findi ~f:(fun _ -> String.equal u) l in
-      let%bind (i,_) = Result.of_option o ~error:(Printf.sprintf "%s was not in comprehension" u) in
-      goto_comp_pos i t
-
-
-    let goto_dir_pos pos t =
-      let rec keep_going pos t =
-        if pos > 0
-        then next t >>= into_pair >>= keep_going (pos-1)
-        else mk_ok t
-      in
-        into_pair t >>= keep_going pos
-
-    let rec goto_dir_name u t =
-      match%bind fetch t with
-      | PairRep x when x = u -> into_pair t
-      | PairRep _ -> into_pair t >>= next >>= goto_dir_name u
-      | NullRep -> mk_err "%s is not in this directory specification" u
-      | _ -> mk_err "Goto_dir_name can only be used in a directory"
-
-    let goto_pos pos t =
-      match fetch t with
-      | Ok (CompRep _) -> goto_comp_pos pos t
-      | Ok (PairRep _) -> goto_dir_pos pos t
-      | _ -> mk_err "goto_pos: unimplemented"
-
-    let goto_name name t =
-      match fetch t with
-      | Ok (CompRep _) -> goto_comp_name name t
-      | Ok (PairRep _) -> goto_dir_name name t
-      | _ -> mk_err "goto_name: unimplemented"
-
-  end
-  include Derived
 end
 
 module TxForestCore  = struct
@@ -840,3 +712,4 @@ let glob_match_from_string reg str =
     let _ = Re.exec (Re.compile (Re.Glob.glob reg)) str in
     true
   with Not_found | Not_found_s _ -> false [@@warning "-3"]
+

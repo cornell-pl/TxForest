@@ -68,33 +68,9 @@ type ctxt = path * PathSet.t * zipper
 (*extra types not in the mli*)
 
 
-(* timestamp
- *)
-type ts = float
-
-
-
-
-(* log
- * list of commited timestamped log entries, where the timestamp indicates the
- * time at which the thing was commited
- *)
-type global_log = (ts * le) list
-
-
 type thread = ctxt * fs * forest_command
 
-type tx_state = forest_command * ts * log
-
-type transaction = thread * tx_state
-
-type thread_pool = transaction list
-
 type t = ctxt * fs * local_log
-
-
-let global_log : global_log ref = ref []
-let global_fs : (PermFS.t or_fail) ref = ref (PermFS.create PermFS.dummy_path)
 
 
 let print_fetch_result = Fn.compose (Printf.printf "%s \n") show_fetch_result
@@ -250,74 +226,11 @@ let eval_forest_command fc (ctxt, fs, l) : t or_fail =
   | Update fu -> eval_forest_update fu (ctxt, fs, l)
 
 
-let conflict_path (p':path) (e: le) : bool =
-  match e with
-  | Read _ -> false
-  | Write_file (_, _, p) -> String.is_prefix p' ~prefix:p
-  | Write_directoy (_, _, p) -> String.is_prefix p' ~prefix:p
-
-let rec extract_paths (ll: log) : path list =
-  match ll with
-  | [] -> []
-  | (Read (_, p))::tl -> p::(extract_paths tl)
-  | (Write_file (_, _, p))::tl -> p::(extract_paths tl)
-  | (Write_directoy (_, _, p))::tl -> p::(extract_paths tl)
-
-let check_log (gl: global_log) (ll: log) (ts: ts) : bool =
-  let paths = extract_paths ll in
-  let b = List.map paths ~f:(fun p ->
-      let conflicts = List.map gl ~f:(fun (ts', le) -> ts' < ts || not (conflict_path p le) ) in
-        not (List.mem conflicts false ~equal:(fun b1 b2 -> b1 = b2))
-  ) in
-    not (List.mem b false ~equal:(fun b1 b2 -> b1 = b2))
-
-
-let rec update_global_fs (ll: log) (fs: PermFS.t)  : PermFS.t or_fail =
-  match ll with
-  | [] -> mk_ok fs
-  | (Read _) :: tl -> update_global_fs tl fs
-  | (Write_file (_ , File (u) , p)) :: tl -> begin
-    PermFS.goto p fs >>= PermFS.make_file u >>= update_global_fs tl
-  end
-  | (Write_directoy (_ , Dir (l), p)) :: tl -> begin
-    PermFS.goto p fs >>= PermFS.make_directory l >>= update_global_fs tl
-  end
-  | (Write_file (_ , _ , _)) :: _ -> mk_err "you tryed to write somethin other than a file with Write_file"
-  | (Write_directoy (_ , _ , _)) :: _ -> mk_err "you tryed to write somethin other than a dir with Write_dir"
-
-
-let merge (ll: log) : unit =
-  let fs = !global_fs in
-  let fs' = fs >>= (update_global_fs ll) in
-    global_fs := fs'
-
-let update_global_log (ll: log) : unit =
-  let ts = Unix.time () in
-  let ts_local_log = List.map ll ~f:(fun le -> (ts, le)) in
-    global_log := ((!global_log) @ ts_local_log)
-
-
-let commit (fc : forest_command) ((ctxt, fs, _): t) : t or_fail =
-  let new_thread = (ctxt, fs, ref []) in
-  let ts = Unix.time () in
-  let%bind (ctxt', fs', l) = eval_forest_command fc new_thread in
-  if check_log (!global_log) (!l) ts then begin
-    (*there are no conflicts, transaction may proceed*)
-    merge (!l);
-    update_global_log (!l);
-    mk_ok (ctxt', fs', l)
-  end
-  else begin
-    (*there are conflicts, transaction may NOT proceed*)
-    mk_err "Conflict when trying to commit command"
-  end
-
 let async_print t =
   let open Async in
   match fetch t with
     | Ok fr -> info_message "TXForest" (show_fetch_result fr)
     | Error u -> info_message "TXForest" u
-
 
 let print t =
     match fetch t with
@@ -356,9 +269,7 @@ let run_txn ~(f:t->'a or_fail) (s:specification) (p:string) () =
   in
     TempFS.run_txn ~f:f_to_z ()
 
-
-
-let run_command (fc : forest_command) (s:specification) ?(p: path option) () =
+(* let run_command (fc : forest_command) (s:specification) ?(p: path option) () =
   let p = match p with None -> TempFS.dummy_path | Some p' -> p' in
   let ps = PathSet.singleton p in
   let z = make_zipper (empty_env, s) in
@@ -386,7 +297,7 @@ let run_commands (fcs : forest_command list) (s:specification) ?(p: path option)
   in
     match run fcs t with
     | Ok _ -> Printf.printf "Commands successfully commited!\n"
-    | Error e -> Printf.printf "Commands aborted because %s\n" e
+    | Error e -> Printf.printf "Commands aborted because %s\n" e *)
 
 
 let create (s:specification) ?(p: path option) () : t=
@@ -401,20 +312,37 @@ let create (s:specification) ?(p: path option) () : t=
 (*     (Printf.printf "Spec: %s\n" (show_specification s));  *)
     t
 
+let get_log (t: t) :log =
+  let (_, _, log_ref)  = t in
+    !log_ref
+
+let rec update_global_fs (ll: log) (fs: PermFS.t)  : PermFS.t or_fail =
+  match ll with
+  | [] -> mk_ok fs
+  | (Read _) :: tl -> update_global_fs tl fs
+  | (Write_file (_ , File (u) , p)) :: tl -> begin
+    PermFS.goto p fs >>= PermFS.make_file u >>= update_global_fs tl
+  end
+  | (Write_directoy (_ , Dir (l), p)) :: tl -> begin
+    PermFS.goto p fs >>= PermFS.make_directory l >>= update_global_fs tl
+  end
+  | (Write_file (_ , _ , _)) :: _ -> mk_err "you tryed to write somethin other than a file with Write_file"
+  | (Write_directoy (_ , _ , _)) :: _ -> mk_err "you tryed to write somethin other than a dir with Write_dir"
 
 
-let commit_log ((ctxt, fs, l): t) : t or_fail =
-  let ts = Unix.time () in
-  if check_log (!global_log) (!l) ts then begin
-    (*there are no conflicts, transaction may proceed*)
-    merge (!l);
-    update_global_log (!l);
-    mk_ok (ctxt, fs, l)
-  end
-  else begin
-    (*there are conflicts, transaction may NOT proceed*)
-    mk_err "Conflict when trying to commit command"
-  end
+let merge (ll: log) (p:path) : unit =
+  let fs = PermFS.create p in
+  let _ = fs >>= (update_global_fs ll) in
+    ()
+
+
+(*given the gohead to update the global fs*)
+let commit ((p, ps, z), fs, l) : t or_fail =
+  merge (!l) p;
+  TempFS.create p
+  >>= (fun (fs', p') ->
+    mk_ok ((p, ps, z), fs', ref [])
+  )
 
 
 

@@ -1,6 +1,5 @@
 open Async
 open Rawforest
-open EvalForest
 open Utils
 
 
@@ -8,9 +7,8 @@ open Utils
 let write_struct = Writer.write_marshal ~flags:[]
 
 type command =
-  | Forest of forest_command
-  | Fetch
-  | Commit
+  | Commit of log
+  | CommitFinished
 
 module Server = struct
 
@@ -20,57 +18,34 @@ module Server = struct
       | Error u -> info_message "S" u
 
 
-
-
-  let eval_command c context writer =
+  let eval_command c writer =
     match c with
-    | Forest fc -> begin
-      match eval_forest_command fc context with
-      | Ok context' -> write_struct writer (Ok ()); context'
-      | Error e -> write_struct writer (Error e); context
+    | Commit l -> begin
+      let result = TxForestGlobal.commit l () in
+        write_struct writer result;
+        result
     end
-    | Fetch -> begin
-      let fr = fetch context in
-        print_fetch fr;
-        write_struct writer (let open Core.Result in fr >>| writable_of_fetch);
-        context
-    end
-    | Commit -> begin
-      match commit_log context with
-      | Ok context' -> write_struct writer (Ok ()); context'
-      | Error e -> write_struct writer (Error e); context
+    | CommitFinished -> begin
+      let result = TxForestGlobal.finish_commit () in
+        write_struct writer result;
+        result
     end
 
-  let read_and_run reader ~init ~f =
+  let read_and_run reader ~f =
     Reader.read_marshal reader
     >>= function
-    | `Eof -> return init
+    | `Eof -> return ()
     | `Ok command -> f command
 
-  let rec read_spec id reader =
-    let debug = info_message ~id:id "C" in
-    debug "Reading spec";
-    Reader.read_marshal reader
-    >>= function
-    | `Eof -> read_spec id reader
-    | `Ok s -> begin
-      debug "Spec read";
-      return (Forest.Spec.name_to_spec s)
-    end
 
-
-  let rec run_loop reader writer context =
-    let run_loop = run_loop reader writer in
-    read_and_run ~init:context reader
+  let rec run_loop reader writer =
+    read_and_run reader
     ~f:(fun command ->
-        Async.Deferred.Result.return (eval_command command context writer)
-        >>= fun nContext ->
-          match nContext with
-          | Ok context -> run_loop context
-          | _          -> run_loop context
+        Async.Deferred.Result.return (eval_command command writer)
+        >>= fun result -> run_loop reader writer
     )
 
-  let start_server ~port path =
+  let start_server ~port =
     set_debug ();
     Tcp.Server.create
       ~on_handler_error:`Raise
@@ -78,27 +53,25 @@ module Server = struct
       (fun _ reader writer ->
         let debug = info_message ~id:(Writer.id writer) "C" in
         debug "Connected to server";
-        let spec = read_spec (Writer.id writer) reader in
-        let context = spec >>| (fun s -> EvalForest.create s ~p:path ()) in
-        context >>| (fun c -> write_struct writer (Ok ()));
-        context >>= run_loop reader writer
-        >>| fun context -> commit_log context; debug "Disconnected from server"
-        )
+        write_struct writer (mk_ok ());
+        run_loop reader writer
+        >>| fun _ -> debug "Disconnected from server"
+      )
     >>= fun _ -> Deferred.never ()
-
-end
+  end
 
 let () =
-  Command.async_spec
-    ~summary:"Start filesystem server at PATH"
-    Command.Spec.(
-      empty
-      +> flag "-port" (optional_with_default 8765 int)
+  let open Command.Let_syntax in
+  Command.basic
+    ~summary:"Start filesystem client (MAKE SURE TO START SERVER FIRST!)"
+    [%map_open
+      let port =
+        flag "-port" (optional_with_default 8765 int)
         ~doc:"Port to listen on or connect to (if shard) (default 8765)"
-      +> anon ("path" %: string)
-    )
-    (fun port path () ->
-      info_message "S" "Starting server";
-      Server.start_server ~port path
-    )
-  |> Command.run
+      in
+      (fun () ->
+        info_message "S" "Starting server";
+        Server.start_server ~port;
+        ()
+      )
+    ] |> Command.run

@@ -6,8 +6,6 @@ open Utils
 type fs
 type local_log = log ref
 
-
-
 type fetch_result = Utils.fetch_rep
 
 
@@ -98,5 +96,11 @@ val run_txn : f:( t -> 'a or_fail) -> specification -> string -> unit -> ('a,txE
 
 val create : specification -> ?p : path -> unit -> t
 
-val commit_log: t -> t or_fail
+val get_log: t -> log
+
+(* given the go ahead by the global FS to commit, has exclusive
+ * acess to the real file system*)
+val commit: t -> t or_fail
+
+
 

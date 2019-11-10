@@ -4,7 +4,7 @@
   (flags (:standard -w -32-g))
   (libraries core re str async)
   (preprocess (pps ppx_deriving.show ppx_deriving.make ppx_jane))
-  (modules Utils PosixFilesystem SimpleFilesystem UncommitedPosixFilesystem Filesystems TxEvalForest EvalForest)
+  (modules Utils PosixFilesystem SimpleFilesystem UncommitedPosixFilesystem Filesystems TxEvalForest EvalForest TxForestGlobal)
 )
 
 ; make add Utils, EvalForest private -> both needed for typing
