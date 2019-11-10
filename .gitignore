@@ -24,7 +24,7 @@
 *.synctex.*
 
 # ocamlbuild working directory
-_build/
+*_build/
 
 # Dune files
 *.install
