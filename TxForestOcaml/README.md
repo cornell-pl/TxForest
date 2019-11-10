@@ -1,4 +1,11 @@
 # TxForest (Ocaml)
+This includes:
+  - forest library implmenting the logic of a local "thread" as discussed in the paper
+  - ppx rewriter to fully embed the surface syntax for the language in ocmal
+  - a server to enforce the global logic discussed in the paper
+  - a client to run a universal filesystem specification and allow runnning through commands
+  - many examples running on top of the local version of forest (soon to be ported to the global version)
+  - multiple filesystem libraries for our library to run on top of (in memory FS, posix FS, write back cache style posix FS using in memory cache, and soon to contain write back cache style posix FS using disk cache)
 
 ## requirements
 - ocaml (version 4.05)
@@ -20,10 +27,26 @@
                 level forsts types for the languge
       ppx
                 ppx rewriter to embed the language in ocaml
+      lib
+                the exposed forest libary (ForestIntf) containing
+                local and global transactional versions of the
+                library. Also includes a client to walk through the
+                filesystem using forest commands running on a
+                universal filesystem.
       src
-                the forest library. eval forest does the
-                computation, forestIntf is a nice wrapper
-                over this to make it easier to work with
+                implementation of the core calculus of forest.
+                Txforest runs forest commands as local transactions
+                like the denotation function in the paper. TxForestGlobal
+                implements the global loging and optimistic checking for
+                the global semantics specified in the paper.
+                This also includes the filesystem libraries which forest
+                can run on top of (SimpleFilesystem is in memory,
+                PosixFilesystem
+                runs on a disk filestem, UncommitedPosixFilesystem reads
+                from a disk filesystem and writes to an in memory one,
+                ZFSFilesystem runs on top of ZFS, soon this will also
+                include another library which reads and writes
+                from a temp disk filesystem).
 
 
 ## compling
