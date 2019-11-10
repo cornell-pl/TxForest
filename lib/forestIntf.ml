@@ -406,6 +406,52 @@ module ForestCoreExn  = struct
   include Derived
 end
 
+
+module TxForestCoreExn = struct
+
+  include ForestCoreExn
+
+  open Async
+  let write_struct = Writer.write_marshal ~flags:[]
+  let block = Thread_safe.block_on_async_exn
+
+  let send_and_receive : command -> (t * Reader.t * Writer.t) -> (t * Reader.t * Writer.t)
+    = fun command (t, reader,writer) ->
+      block
+      ( fun () ->
+        write_struct writer command;
+        Reader.read_marshal reader
+        >>| function
+        | `Eof -> failwith "send_and_receive: No response from TxForest"
+        | `Ok (Error e) -> failwith e
+        | `Ok (Ok _) -> (t, reader,writer)
+      )
+
+  let create s p ?(port=8765) ?(host="localhost") () : (t * Reader.t * Writer.t) =
+    block (
+      fun () ->
+      Tcp.connect
+        (Core.Host_and_port.create ~host ~port
+        |> Tcp.Where_to_connect.of_host_and_port)
+      >>= (fun (_,reader,writer) ->
+        Reader.read_marshal reader
+        >>| function
+        | `Eof -> failwith "create: No response from Forest Server"
+        | `Ok _ -> begin
+          let t = EvalForest.create s ~p:p () in
+            (t, reader,writer)
+        end
+      )
+    )
+
+  let commit (t, reader, writer) =
+    let (t, reader, writer) = send_and_receive (Commit (get_log t)) (t, reader, writer) in
+    match EvalForest.commit t with
+    | Error e -> failwithf "Commit failed with error: %s" e ()
+    | Ok t -> send_and_receive CommitFinished (t, reader, writer)
+end
+
+
 (* TODO: Implement a version where we walk through paths using is_path *)
 module ForestRawWalkThrough = struct
 end

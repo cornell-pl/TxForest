@@ -6,7 +6,7 @@ open Core
 open Result
 open Forest
 open ForestIntf
-open TxForestCore
+open TxForestCoreExn
 
 [%%txforest {|
     univ = directory {
@@ -77,7 +77,7 @@ let rec fscommands =
     | _ -> mal_exp
   in
   let argE ~f (t, reader, writer) = function
-    | [] -> f t
+    | [] -> f t >>= (fun t -> TxForestCore.commit (t, reader, writer))
     | hd :: [] -> goto hd t >>= f >>= (fun t -> TxForestCore.commit (t, reader, writer))
     | _ -> mal_exp
   in
@@ -157,7 +157,7 @@ let start_client p ~port ~host () =
         | `Ok (Ok _) -> shell_loop 0 (reader,writer)
   ) *)
   write_endline "Forest Client";
-  TxForestCore.create univ p ~port ~host ()
+  TxForestCore.create univ_spec p ~port ~host ()
 
 let () =
   let open Command.Let_syntax in
