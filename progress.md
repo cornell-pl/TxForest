@@ -57,6 +57,9 @@ persisitant file systems
 
 ## Whats next
 
+- push the forst studd client side, so the spec an be there, the fs can be there etc.
+- work through the directory add version
+
 - write the updates to a temporary directory and then be moved to the rest of the file system on commit, so that we can spread the writes allong as we do the trasaction and the commiting process can be simplier and more atomic change to using
 
 - clean up the code mode
