@@ -35,7 +35,7 @@
 
 open Core
 open Rawforest
-open EvalForest
+open TxForest
 open Utils
 
 module Var = Utils.Var
@@ -52,7 +52,7 @@ type fetch_rep = Utils.fetch_rep =
   | PredRep of bool
   | NullRep [@@deriving show]
 
-type specification = EvalForest.specification =
+type specification = TxForest.specification =
   | Null
   | File
   | Dir
@@ -66,7 +66,7 @@ type command =
   | Commit of log
   | CommitFinished
 
-type t = EvalForest.t
+type t = TxForest.t
 
 (* Additional *)
 
@@ -75,10 +75,10 @@ let loop_txn = loop_txn
 let run_txn = run_txn
 
 
-let print_fetch_result = EvalForest.print_fetch_result
-let print = EvalForest.print
-let print_ret = EvalForest.print_ret
-let debug_print = EvalForest.debug_print
+let print_fetch_result = TxForest.print_fetch_result
+let print = TxForest.print
+let print_ret = TxForest.print_ret
+let debug_print = TxForest.debug_print
 
 
 
@@ -291,7 +291,7 @@ module TxForestCoreOpen = struct
         >>| function
         | `Eof -> failwith "create: No response from Forest Server"
         | `Ok _ -> begin
-          let t = EvalForest.create s ~p:p () in
+          let t = TxForest.create s ~p:p () in
             (t, reader,writer)
         end
       )
@@ -302,7 +302,7 @@ module TxForestCoreOpen = struct
   let commit (t, reader, writer) =
     send_and_receive (Commit (get_log t)) (t, reader, writer)
     >>= (fun (t, reader, writer) ->
-      let%bind t = EvalForest.commit t in
+      let%bind t = TxForest.commit t in
         send_and_receive CommitFinished (t, reader, writer)
         >>= (fun (t, reader, writer) ->
           mk_ok (t, reader, writer)
@@ -438,7 +438,7 @@ module TxForestCoreExn = struct
         >>| function
         | `Eof -> failwith "create: No response from Forest Server"
         | `Ok _ -> begin
-          let t = EvalForest.create s ~p:p () in
+          let t = TxForest.create s ~p:p () in
             (t, reader,writer)
         end
       )
@@ -446,7 +446,7 @@ module TxForestCoreExn = struct
 
   let commit (t, reader, writer) =
     let (t, reader, writer) = send_and_receive (Commit (get_log t)) (t, reader, writer) in
-    match EvalForest.commit t with
+    match TxForest.commit t with
     | Error e -> failwithf "Commit failed with error: %s" e ()
     | Ok t -> send_and_receive CommitFinished (t, reader, writer)
 end

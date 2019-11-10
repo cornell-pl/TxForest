@@ -7,7 +7,6 @@
   (modules ForestIntf)
 )
 
-
 (executable
   (name forestServer)
   (public_name forestServer)
