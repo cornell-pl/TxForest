@@ -20,9 +20,6 @@ persisitant file systems
 - add transaction checking logic for commiting / uncommiting in the forest repo
 - add final commit logic for updating the global fs for forest
 - updated ppx to work with the above scheme
-
-## Last week
-
 - make the local logs mutable to make merging logs easier, and evaluating expressions cleaner
 - switch ppx back and update it to work with this version
 - implemented server and a version of ForestIntf using this server
@@ -33,8 +30,7 @@ persisitant file systems
 - look more into out options for ppx, it looks like the best approach will be to reimplement forest in python to avoid the python users having to do a complicated install to use our library, expose a bunch of objects for the user to work with and then overload some operators to make working with the objects nicer
   - theres anonther doc with all the stuff from this
 
-## This week
-
+## Last week
 - debuging the server and client
   - had some fun with marshaling not typing things
   - had an issue with the specs, because we have functions in the spec they
@@ -54,15 +50,27 @@ persisitant file systems
   - made updates to use higher order embeding
   - thoughts
 
+## This week
+- push the forest ocaml stuff client side, so the spec an be there, the fs can be there etc.
+- made the client more user friendly
+  - only one down, one up command
+  - skips over the `"dir'"` pairs
+- documented more in the readmes what stuff is where
+
+- work through the directory add version
+  - I wrote this example out and thought about it seems to work
+  - went with the add command and then realized can over ride the dictionary assignment to make this even nicer
+  - override the dictionary access command to make writing this out nice
+  - wrote out a prototype version of the spec hierarcy
+  - realized can pass in a dict to Directory and can recursivly access the spec its assigned to, allowing to initialize all at once instead of the add thing
 
 ## Whats next
 
-- push the forst studd client side, so the spec an be there, the fs can be there etc.
-- work through the directory add version
-
 - write the updates to a temporary directory and then be moved to the rest of the file system on commit, so that we can spread the writes allong as we do the trasaction and the commiting process can be simplier and more atomic change to using
 
-- clean up the code mode
 - testing more
+- document in code more
+- implement to forest stuff in python
+
 
 - make a project plan/ more detailed plan for this the python part of the project

@@ -1,6 +1,9 @@
 # TXForest (Python)
 
-TODO
+Python implementation of the TxForest DSL
+
+
+[implementation plan](python_forest.md)
 
 - running tests:
 `make test`

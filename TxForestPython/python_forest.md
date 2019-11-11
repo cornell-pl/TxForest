@@ -135,6 +135,19 @@ spec = temp.desugar()
 We could also have subclasses like `RegexComp` or `GlobComp` matching the ocaml to help make writing things like this more suscinct
 
 
+project plan:
+- implment the spec hierarchy
+- implement forest local transaction semantics (with logging)
+- implement simple in memory filesystem to test on
+- implement global log, and transaction log checking
+- implement server/client like in ocaml
+- write some examples on the python version
+- implement fs to connect to system fs
+- add some nice semantic things
+  - pipe for functions would be v nice
+  - paths with /
+
+
 
 
 
