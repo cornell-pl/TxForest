@@ -114,6 +114,20 @@ let rec fscommands =
     end
     | _ -> Ok (t, acc)
   in
+  let touch (u: string) t =
+    let cur_dir = match TxForestCore.fetch t with
+    | Ok (DirRep s)
+    | Ok (CompRep s) -> s
+    | Ok (PairRep _) -> begin
+      match pair_lst (t, []) with
+      | Ok (_, s) -> String.Set.of_list s
+      | _ -> failwith "not in a directory"
+    end
+    | _ -> failwith "not in a directory"
+    in
+    let new_dir = String.Set.add cur_dir u in
+      TxForestCore.store_dir new_dir t
+  in
   let arg0 ~f (t, reader, writer) = function
     | [] -> f t >>= (fun t -> TxForestCore.commit (t, reader, writer) )
     | _ -> mal_exp
@@ -149,12 +163,12 @@ let rec fscommands =
     "ls", lst;
     "cat", cat;
     "fetch", fetch;
-    "update", arg1 ~f:TxForestCore.store_file;
     "prev", arg0 ~f:prev;
     "next", arg0 ~f:next;
     "up", arg0 ~f:up;
     "down", arg0 ~f:down;
-    "touch", arg0 ~f:(TxForestCore.store_file "");
+    "update", arg1 ~f:TxForestCore.store_file;
+    "touch", arg1 ~f:touch;
     "mkdir", arg0 ~f:(TxForestCore.store_dir String.Set.empty);
 (*     "rm", arg1 ~f:(remove_child); *)
     "quit", arg0 ~f:return;
