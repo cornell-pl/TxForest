@@ -5,6 +5,9 @@ paper writen about this DSL: [paper](http://www.cs.cornell.edu/~dilorenzo/docs/t
 
 related and original repo of this work (contains ZFS a related DSL and the source latex of the paper on this project): [ZFS repo](https://github.com/cornell-pl/ocaml-zfs)
 
+see [progress doc](progress.md) for information on the progress of this
+library
+
 This repo contains 2 implementations an ocaml one and a python one
 
 ## TXForest (Ocaml)
