@@ -43,9 +43,9 @@ Background Classes:
       - right
       - goto_name
 
-    Log(path: string)
+    Log() -> will just use a list of LogEntryes for this
 
-    Env()
+    Env() -> instead will just use dictionaries, since we dont really need any extra functionality other than this
 
     FileSystem(path : string)
       PosixFileSystem(path : string)
