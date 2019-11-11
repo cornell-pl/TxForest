@@ -8,9 +8,9 @@ Exposed Class hiearchy:
       Dir()
       Path(name : string , sub_spec : Spec )
       Pair(sub_spec1 : Spec, x_to_sub_spec2 : Spec -> Spec)
-      Comp(x_to_sub_spec : Spec -> Spec, membership_function : () -> string list)
+      Comp(x_to_sub_spec : string -> Spec, membership_function : () -> string list)
       Opt(sub_spec : Spec)
-      Pred(test : () -> string list)
+      Pred(test : bool)
 
     Forest(spec: Spec, path: string)
       - up
@@ -98,30 +98,43 @@ function get_info_for_name (name : string) (forest : Forest) =
 ```
 
 
-To make this a little nicer we can add `Directory(specs : string,Spec list)` to the Spec, which we just turn into the dpairs this chould make the spec looks a little nicer, not sure if this is possible with higher order embeding
-
+To make this a little nicer we can add a `Directory` subclass to Spec.
+We want this to take mapping from names to tunk to spec, which seems difficult in python, we will get there, but consider having to add each name spec pair. Then we can override the indexing functionality with something that returns the variable for zipper for the spec mapped to the name.
 
 ```
-spec = Directory()
-spec.addToDirectory('index', lambda () : Path(lambda x : 'index.txt', File()))
-spec.addToDirectory('dir', lambda () :
+temp = Directory()
+temp.add('index', lambda () : Path('index.txt', File()))
+temp.add('dir', lambda () :
   Path(
     'dir',
     Comp(
       lambda x : Path(x, File()),
-      lambda () : lines (fetch_file (down spec['index'])),
+      lambda () : lines (fetch_file (down temp['index'])),
     )
   )
 )
+spec = temp.desugar()
 ```
 
-For comprehensions we could also have subclasses like `RegexComp` or `GlobComp` to help make writing things like this more suscinct
+Then we can just pass a dictionary into Directory on initalization and use iterative add for each of the items
+
+```
+temp = Directory({
+    'index' :  lambda () : Path('index.txt', File()),
+    'dir' :  lambda () : Path(
+      'dir',
+      Comp(
+        lambda x : Path(x, File()),
+        lambda () : lines(temp['index'])
+      )
+    )
+  })
+spec = temp.desugar()
+```
+
+We could also have subclasses like `RegexComp` or `GlobComp` matching the ocaml to help make writing things like this more suscinct
 
 
-- higher order abstract syntax
-- make the second part of the pair a function and the first part of the comprehension a function instead, so that the variables are more natural
-to work with
-- add back predicates
 
 
 
