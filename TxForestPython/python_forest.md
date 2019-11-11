@@ -10,7 +10,7 @@ Exposed Class hiearchy:
       Pair(sub_spec1 : Spec, x_to_sub_spec2 : Spec -> Spec)
       Comp(x_to_sub_spec : string -> Spec, membership_function : () -> string list)
       Opt(sub_spec : Spec)
-      Pred(test : bool)
+      Pred(test : () -> bool)
 
     Forest(spec: Spec, path: string)
       - up
