@@ -65,9 +65,55 @@ let mk_error format = Core.Printf.ksprintf (fun s -> Error s) format
 
 let rec fscommands =
   let open Result in
+  let open Result.Let_syntax in
   let mal_exp = mk_error "Malformed expression" in
   (*TODO: this obviously needs to actually do the thing*)
   let goto p t = Ok t in
+  let up t =
+    match TxForestCore.up t with
+    | Error _ -> TxForestCore.out t
+    | t -> t
+  in
+  let up_dir' t =
+    match TxForestCore.fetch t with
+      | Ok(PairRep "dir'") -> up t
+      | _ -> Ok t
+  in
+  let down_dir' t =
+    match TxForestCore.fetch t with
+      | Ok(PairRep "dir'") -> TxForestCore.into_pair t >>= TxForestCore.next
+      | _ -> Ok t
+  in
+  let down t =
+    let%bind temp_res =
+      match TxForestCore.fetch t with
+      | Ok(PathRep _) -> TxForestCore.down t
+      | Ok(PairRep _) -> TxForestCore.into_pair t
+      | Ok(CompRep _) -> TxForestCore.into_comp t
+      | Ok(OptRep _) -> TxForestCore.into_opt t
+      | Error e -> Error e
+      | _ -> Ok t
+    in
+      down_dir' temp_res
+  in
+  let next t =
+    match TxForestCore.next t with
+    | Ok temp_res -> down_dir' temp_res
+    | Error _ -> TxForestCore.out t >>= TxForestCore.next >>= down_dir'
+  in
+  let prev t =TxForestCore.prev t >>= down_dir' in
+  let up t = up t >>= up_dir' in
+  let rec pair_lst (t,acc) =
+    match TxForestCore.fetch t with
+    | Ok(PairRep s) -> begin
+      let%bind t' = TxForestCore.into_pair t >>= TxForestCore.next in
+      let acc' = s :: acc in
+      let%bind (t'', acc'') = pair_lst (t', acc') in
+      let%bind t''' = TxForestCore.prev t'' >>= TxForestCore.out in
+        Ok (t''', acc'')
+    end
+    | _ -> Ok (t, acc)
+  in
   let arg0 ~f (t, reader, writer) = function
     | [] -> f t >>= (fun t -> TxForestCore.commit (t, reader, writer) )
     | _ -> mal_exp
@@ -86,6 +132,11 @@ let rec fscommands =
     (match TxForestCore.fetch t with
     | Ok (DirRep s)
     | Ok (CompRep s) -> String.Set.iter s ~f:(fun u -> write_space u); write_endline ""
+    | Ok (PairRep _) -> begin
+      match pair_lst (t, []) with
+      | Ok (_, s) -> List.iter (List.rev s) ~f:(fun u -> write_space u); write_endline ""
+      | _ -> ()
+    end
     | _ -> ()
     ); return t) in
   let cat = argE ~f:(fun t ->
@@ -93,26 +144,25 @@ let rec fscommands =
     | Ok(FileRep s) -> write_endline s
     | _ -> ()
     ); return t) in
-
   [
     "cd", arg1 ~f:TxForestCore.goto_name;
     "ls", lst;
     "cat", cat;
     "fetch", fetch;
     "update", arg1 ~f:TxForestCore.store_file;
-    "prev", arg0 ~f:TxForestCore.prev;
-    "next", arg0 ~f:TxForestCore.next;
-    "up", arg0 ~f:TxForestCore.up;
-    "down", arg0 ~f:TxForestCore.down;
-    "into_pair", arg0 ~f:TxForestCore.into_pair;
-    "into_comp", arg0 ~f:TxForestCore.into_comp;
-    "into_opt", arg0 ~f:TxForestCore.into_opt;
-    "out", arg0 ~f:TxForestCore.out;
+    "prev", arg0 ~f:prev;
+    "next", arg0 ~f:next;
+    "up", arg0 ~f:up;
+    "down", arg0 ~f:down;
     "touch", arg0 ~f:(TxForestCore.store_file "");
     "mkdir", arg0 ~f:(TxForestCore.store_dir String.Set.empty);
 (*     "rm", arg1 ~f:(remove_child); *)
     "quit", arg0 ~f:return;
     "help", help;
+    "into_pair", arg0 ~f:TxForestCore.into_pair;
+    "into_comp", arg0 ~f:TxForestCore.into_comp;
+    "into_opt", arg0 ~f:TxForestCore.into_opt;
+    "out", arg0 ~f:TxForestCore.out;
     ]
 
 and help t _ =
