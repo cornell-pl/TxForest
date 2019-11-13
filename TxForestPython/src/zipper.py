@@ -19,6 +19,9 @@ class Zipper():
   def left(self):
     pass
 
+  def goto_i(self):
+    pass
+
 
 def make_zipper(spec, path):
   pass

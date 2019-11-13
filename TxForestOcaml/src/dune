@@ -4,9 +4,10 @@
   (flags (:standard -w -32-g))
   (libraries core re str async)
   (preprocess (pps ppx_deriving.show ppx_deriving.make ppx_jane))
-  (modules Utils PosixFilesystem SimpleFilesystem UncommitedPosixFilesystem  UncommitedPosixTempFilesystem Filesystems TxForest TxForestGlobal)
+  (modules Utils PosixFilesystem SimpleFilesystem UncommitedPosixFilesystem Filesystems TxForest TxForestGlobal)
 )
 
 ; make add Utils, EvalForest private -> both needed for typing
 ; the ppxed files rn, maybe could expose some of the things
 ; needed in ForestIntf, so that these can be made private
+; UncommitedPosixTempFilesystem

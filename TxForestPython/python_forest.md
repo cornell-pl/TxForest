@@ -45,7 +45,7 @@ Background Classes:
 
     Log() -> will just use a list of LogEntryes for this
 
-    Env() -> instead will just use dictionaries, since we dont really need any extra functionality other than this
+    Env() -> instead will just use dictionaries, since we dont really need any extra functionality other than this, doesnt seem like we need this with the higher order embding
 
     FileSystem(path : string)
       PosixFileSystem(path : string)

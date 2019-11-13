@@ -52,25 +52,49 @@ persisitant file systems
 
 ## This week
 - push the forest ocaml stuff client side, so the spec an be there, the fs can be there etc.
+  - this is so much cleaner, wow
+
 - made the client more user friendly
   - only one down, one up command
   - skips over the `"dir'"` pairs
+  - can ls for dependent pairs
+
 - documented more in the readmes what stuff is where
 
-- work through the directory add version
+- python work through the directory add version
   - I wrote this example out and thought about it seems to work
   - went with the add command and then realized can over ride the dictionary assignment to make this even nicer
-  - override the dictionary access command to make writing this out nice
+  - override the dictionary get/set command to make writing this out nice
   - wrote out a prototype version of the spec hierarcy
   - realized can pass in a dict to Directory and can recursivly access the spec its assigned to, allowing to initialize all at once instead of the add thing
 
+- draft for the project plan for the python implementation
+
+- python stubs of the hierarcy of things, with stubs for impementation
+
+- write another the uncommited version, using the temp files idea
+  - this is in progress, most of the logic is there I just need to implment the
+  merging of the two filesystems (I think I will need to keep track of things that I have not read the children of yet, to do this which means this will be nontrivial to do)
+  - the idea of how i did it, is copying the files from the real version to the temp version as you read them (walk through the spec)
+  - and writing to the temp version
+  - decided to copy the read to avoid the situation where the user does something like exists and gets back a file is there, another transaction commits removing the file, then this transaction trys to read the file and
+  its not there anymore.
+  - ie copy the reads to keep the view of the underliying file system consistant
+
 ## Whats next
 
-- write the updates to a temporary directory and then be moved to the rest of the file system on commit, so that we can spread the writes allong as we do the trasaction and the commiting process can be simplier and more atomic change to using
-
+- finish temp fs stuff
 - testing more
+
+- python implementation
+  - implement the core forest transaction logic
+  - implement the in mem FS
+  - maybe implement the global semantics
+
+
+## Long term next
 - document in code more
-- implement to forest stuff in python
+- test more
+- port over all examples to this updated version of ocaml
 
-
-- make a project plan/ more detailed plan for this the python part of the project
+- python version
