@@ -31,7 +31,7 @@ open Unix -> uses the unix in Core, same ^*)
 (* ---------------   Types ---------------- *)
 
 (*note: the filesytem is the one above this path*)
-type fs = path * path (*root, the temp path*)
+type fs = path * path * log (*root, the temp path*)
 
 type t = fs * path
 
@@ -139,10 +139,10 @@ let check_path_preconditions ((fs, p): t) :t or_fail=
 
 (* ----------   Exposed Functions ---------- *)
 
-let get_log t = []
+let get_log ((root_path, temp, l), p) = l
 
-let clear_log (t:t) : t or_fail =
-  mk_ok t
+let clear_log (((root_path, temp, l), p):t) : t or_fail =
+  mk_ok ((root_path, temp, []), p)
 
 let create (p: path) : t or_fail =
   let (parent_dir, _) = Filename.split p in
@@ -162,31 +162,33 @@ let create (p: path) : t or_fail =
           else
             make_dir_h (Filename.concat temp u) []
         );
-        mk_ok ((parent_dir, temp), p)
+        mk_ok ((parent_dir, temp, []), p)
     end
 
-let make_file (u: string) (((root_path, temp), p) :t)  :t or_fail =
+let make_file (u: string) (((root_path, temp, l), p) :t)  :t or_fail =
   let%bind _ = check_path_preconditions (temp, p) in
-    make_file_h temp u;
-    mk_ok ((root_path, temp), p)
+  let l' =  (Write_file (File "", File u, p)) :: l in
+    mk_ok ((root_path, temp, l'), p)
 
-let make_directory ( new_lst: string list) (((root_path, temp), p): t)  : t or_fail =
+let make_directory ( new_lst: string list) (((root_path, temp, l), p): t)  : t or_fail =
   let%bind _ = check_path_preconditions (temp, p) in
+  let l' =  (Write_dir (Dir [], Dir new_lst, p)) :: l in
     make_dir_h temp new_lst;
-    mk_ok ((root_path, temp), p)
+    mk_ok ((root_path, temp, l'), p)
 
-let add_to_directory (u:string) (((root_path, temp), p): t)  : t or_fail =
+let add_to_directory (u:string) (((root_path, temp, l), p): t)  : t or_fail =
   let%bind _ = check_path_preconditions (temp, p) in
     if is_file_h temp then remove_file_h temp;
     if not (exists_h temp) then Unix.mkdir ~perm:default_perm temp;
     let (parent_dir, _) = Filename.split temp in
     let p' = Filename.concat temp u in
+    let l' =  (Write_dir (Dir [], Dir (u :: (Sys.ls_dir temp)), p)) :: l in
       Unix.chdir temp;
       make_file_h (Filename.concat temp u) "";
       Unix.chdir parent_dir;
-      mk_ok ((root_path, temp), p)
+      mk_ok ((root_path, temp, l'), p)
 
-let gotoChild (u: string) (((root_path, temp), p):t) : t or_fail =
+let gotoChild (u: string) (((root_path, temp, l), p):t) : t or_fail =
   let%bind _ = check_path_preconditions (fs, p) in
     if not (exists_h temp) then
       mk_err "gotochild - parent of new path ( %s ) does not exist" (Filename.concat temp u)
@@ -195,13 +197,13 @@ let gotoChild (u: string) (((root_path, temp), p):t) : t or_fail =
     else begin
       let new_path = Filename.concat temp u in
       let new_real_path = Filename.concat p u in
+      let l' =  (Read_dir (Dir [], p)) :: l in
       Unix.chdir temp;
       move_children new_path new_real_path;
-      mk_ok ((root_path, new_path), new_real_path)
+      mk_ok ((root_path, new_path, l'), new_real_path)
     end
 
-
-let goto (new_p:string) (((root_path, temp),p):t) : t or_fail =
+let goto (new_p:string) (((root_path, temp, l),p):t) : t or_fail =
   let rel_new_par = Filename.make_relative ~src:root_path new_p
   let peices = Filename.explode rel_new_par in
   let (real_root :: _) = Filename.explode (Filename.make_relative ~src:root_path p) in
@@ -211,22 +213,21 @@ let goto (new_p:string) (((root_path, temp),p):t) : t or_fail =
         | [] -> mk_ok t
         | hd :: tl -> gotoChild hd t >>= it_bind tl
       in
-      it_bind peices ((root_path, Filename.concat root_path "temp"), Filename.concat root_path real_root)
+      it_bind peices ((root_path, Filename.concat root_path "temp", l), Filename.concat root_path real_root)
 
-let pop ( ((root_path, temp), p) :t) : t or_fail =
+let pop ( ((root_path, temp, l), p) :t) : t or_fail =
   let%bind _ = check_path_preconditions (temp, p) in
   let (parent_dir, _) = Filename.split temp in
   let (real_parent_dir, _) = Filename.split temp in
   let (parent_parent_dir, _) = Filename.split parent_dir in
     Unix.chdir parent_parent_dir;
-    mk_ok ((root_path, parent_dir), real_parent_dir)
+    mk_ok ((root_path, parent_dir, l), real_parent_dir)
 
+let exists (((root_path, temp, l), p):t) : bool = exists_h temp
 
-let exists (((root_path, temp), p):t) : bool = exists_h temp
+let is_dir (((root_path, temp, l), p):t) : bool = is_dir_h temp
 
-let is_dir (((root_path, temp), p):t) : bool = is_dir_h temp
-
-let fetch (((root_path, temp), p):t) : contents =
+let fetch (((root_path, temp, l), p):t) : contents =
   match check_path_preconditions (temp, p) with
   | Ok _ -> begin
     if is_dir_h temp then
@@ -238,16 +239,8 @@ let fetch (((root_path, temp), p):t) : contents =
   end
   | Error e -> failwith e
 
-let sync_path (((root_path, temp),p) : t) : t or_fail =
-  let (parent_dir, dirname) = Filename.split temp in
-    if not (exists_h parent_dir) then
-      mk_err "sync_path - parent of new path ( %s ) does not exist" p
-    else if not (is_dir_h parent_dir) then
-      mk_err "sync_path - parent of new path ( %s ) is not a directory" p
-    else begin
-      Unix.chdir parent_dir;
-      mk_ok ((root_path, temp), p)
-    end
+let sync_path (((root_path, temp, l),p) : t) : t or_fail =
+  goto p ((root_path, temp),p)
 
 let dummy_path =
   let potential_root = Filename.concat (Unix.getcwd ()) "example_fs_root" in
