@@ -246,6 +246,14 @@ let dummy_path =
   let potential_root = Filename.concat (Unix.getcwd ()) "example_fs_root" in
     if exists_h potential_root then potential_root else Filename.root
 
+
+let commit ((root_path, temp, l),p) =
+  let (real_root :: _) = Filename.explode (Filename.make_relative ~src:root_path p) in
+  let Unix.rename (Filename.concat root_path "temp") (Filename.concat root_path real_root) in
+    clear_log ((root_path, temp, l),p)
+
+
+
 (*TODO: error handlling*)
 let run_txn ~(f : fs -> 'a or_fail) () : ('a,txError) Core.result =
   match create dummy_path with
