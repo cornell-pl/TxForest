@@ -3,25 +3,25 @@
 class Zipper():
   def __init__(self, cur=None, left=[], right=[], anc=None):
     self.cur = cur
-    self.left = left
-    self.right = right
+    self.l = left
+    self.r = right
     self.anc = anc
 
-  def down(self):
-    pass
+  def current(self):
+    return self.cur
 
-  def up(self):
+
+  def ancestor(self):
     return self.anc
 
-  def right(self):
-    pass
-
   def left(self):
-    pass
+    new_cur = self.left[-1]
+    del self.left[-1]
+    self.right.insert(0, self.cur)
+    self.cur = new_cur
 
-  def goto_i(self):
-    pass
-
-
-def make_zipper(spec, path):
-  pass
+  def right(self):
+    new_cur = self.right[0]
+    del self.right[0]
+    self.left.append(self.cur)
+    self.cur = new_cur

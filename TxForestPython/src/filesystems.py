@@ -13,6 +13,9 @@ class FileContents(Contents):
     Contents.__init__(self)
     self.u = u
 
+  def get_u(self):
+    return self.u
+
   def __str__(self):
     return 'file: ' + self.u
 
@@ -21,6 +24,9 @@ class DirContents(Contents):
     Contents.__init__(self)
     self.s = s
 
+  def get_lst(self):
+    return self.s
+
   def __str__(self):
     return 'dir: ' + ', '.join(self.s)
 
@@ -28,6 +34,12 @@ class DirContents(Contents):
 class Filesystem():
   def __init__(self, path):
     self.path = path
+    self.log = []
+
+  def get_log(self):
+    log = self.log
+    self.log = []
+    return log
 
 
 class MemoryFilesystem(Filesystem):
