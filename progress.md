@@ -30,7 +30,6 @@ persisitant file systems
 - look more into out options for ppx, it looks like the best approach will be to reimplement forest in python to avoid the python users having to do a complicated install to use our library, expose a bunch of objects for the user to work with and then overload some operators to make working with the objects nicer
   - theres anonther doc with all the stuff from this
 
-## Last week
 - debuging the server and client
   - had some fun with marshaling not typing things
   - had an issue with the specs, because we have functions in the spec they
@@ -50,7 +49,7 @@ persisitant file systems
   - made updates to use higher order embeding
   - thoughts
 
-## This week
+## Last week
 - push the forest ocaml stuff client side, so the spec an be there, the fs can be there etc.
   - this is so much cleaner, wow
 
@@ -80,6 +79,15 @@ persisitant file systems
   - decided to copy the read to avoid the situation where the user does something like exists and gets back a file is there, another transaction commits removing the file, then this transaction trys to read the file and
   its not there anymore.
   - ie copy the reads to keep the view of the underliying file system consistant
+
+## This week
+- see the uncommited version stuff above
+- wrote the local forest syntax in a python version
+  - navigation
+  - storage
+  - fetching
+  - some nice navigation stuff
+
 
 ## Whats next
 
