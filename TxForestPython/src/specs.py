@@ -1,4 +1,5 @@
 from fetchrep import *
+from log import *
 
 class Spec():
   def __init__(self):
@@ -100,9 +101,9 @@ class Comp(Spec):
     return CompRep(self.gen_xs())
 
   def __str__(self):
-    xs = self.gen_xs()
-    x_strings = [x + ' : ' + self.x_to_s(x).__str__() for x in xs]
-    return '[ ' + ', '.join(x_strings) + ' ]'
+    # xs = self.gen_xs()
+    # x_strings = [x + ' : ' + self.x_to_s(x).__str__() for x in xs]
+    return '[ ... ]'
 
 
 class Opt(Spec):

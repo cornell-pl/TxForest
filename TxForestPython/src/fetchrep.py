@@ -36,7 +36,7 @@ class PathRep(FetchRep):
       self.u = u
 
    def __str__(self):
-      return 'path ' + u
+      return 'path ' + self.u
 
 
 class PairRep(FetchRep):

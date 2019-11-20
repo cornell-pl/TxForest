@@ -14,7 +14,7 @@ class Forest():
 
       self.p = path
       self.ps = [path] if ps == [] else ps
-      self.zipper = Zipper(cur = self.spec) if zipper == None else zipper
+      self.z = Zipper(cur = self.spec) if zipper == None else zipper
       self.fs = MemoryFilesystem(self.p) if fs == None else fs
       self.log = [] if log == None else log
 
@@ -24,20 +24,20 @@ class Forest():
 
 
    def down(self):
-      cur = self.zipper.current()
+      cur = self.z.current()
       if isinstance(cur, Path):
          u = cur.get_exp()
          s = cur.get_subspec()
 
          self.log.append(ReadFile(self.p))
-         self.p = self.p + '/' + u
+         self.p = join(self.p, u)
          self.ps.append(self.p)
-         self.zipper = Zipper(cur=s, anc=self.zipper)
+         self.z = Zipper(cur=s, anc=self.z)
       else:
          raise Exception('down not at a path')
 
    def into_pair(self):
-      cur = self.zipper.current()
+      cur = self.z.current()
       if isinstance(cur, Pair):
          s1 = cur.leftspec()
          s2 = cur.rightspec()
@@ -45,12 +45,12 @@ class Forest():
          f1 = Forest(s1, self.p, self.ps, fs=self.fs, log=self.log)
          s2 = s2(f1)
 
-         self.zipper = Zipper(cur=s1, right=[s2], anc=self.zipper)
+         self.z = Zipper(cur=s1, right=[s2], anc=self.z)
       else:
          raise Exception('into_pair not at a pair')
 
    def into_comp(self):
-      cur = self.zipper.current()
+      cur = self.z.current()
       if isinstance(cur, Comp):
          s = cur.get_subspec()
          us = cur.gen()
@@ -59,23 +59,23 @@ class Forest():
          s1 = s(cur_u)
          ss = [s(u) for u in us]
 
-         self.zipper = Zipper(cur=s1, right=ss, anc=self.zipper)
+         self.z = Zipper(cur=s1, left=[], right=ss, anc=self.z)
       else:
          raise Exception('into_comp not at a comp')
 
    def into_opt(self):
-      cur = self.zipper.current()
+      cur = self.z.current()
       if isinstance(cur, Opt):
          s = cur.get_subspec()
-         self.zipper = Zipper(cur=s, anc=self.zipper)
+         self.z = Zipper(cur=s, anc=self.z)
       else:
          raise Exception('into_opt not at a opt')
 
    def out(self):
-      self.zipper = self.zipper.ancestor()
+      self.z = self.z.ancestor()
 
    def general_into(self):
-      cur = self.zipper.current()
+      cur = self.z.current()
       if isinstance(cur, Path):
          self.down()
       elif isinstance(cur, Pair):
@@ -88,7 +88,7 @@ class Forest():
          raise Exception('general_into not at a path, pair, comp, opt')
 
    def general_out(self):
-      anc = self.zipper.ancestor()
+      anc = self.z.ancestor().current()
       if isinstance(anc, Path):
          self.up()
       elif isinstance(anc, Pair) or isinstance(anc, Comp) or isinstance(anc, Opt):
@@ -97,88 +97,88 @@ class Forest():
          raise Exception('general_out not at a path, pair, comp, opt')
 
    def next(self):
-      self.zipper.right()
+      self.z.right()
 
    def prev(self):
-      self.zipper.left()
+      self.z.left()
 
    def fetch_file(self):
-      cur = self.zipper.current()
+      cur = self.z.current()
       if isinstance(cur, File):
          return self.fetch()
       else:
          raise Exception('fetch_file used not at a file')
 
    def fetch_dir(self):
-      cur = self.zipper.current()
+      cur = self.z.current()
       if isinstance(cur, Dir):
          return self.fetch()
       else:
          raise Exception('fetch_dir used not at a dir')
 
    def fetch_pair(self):
-      cur = self.zipper.current()
+      cur = self.z.current()
       if isinstance(cur, Pair):
          return self.fetch()
       else:
          raise Exception('fetch_pair used not at a pair')
 
    def fetch_path(self):
-      cur = self.zipper.current()
+      cur = self.z.current()
       if isinstance(cur, Path):
          return self.fetch()
       else:
          raise Exception('fetch_path used not at a path')
 
    def fetch_comp(self):
-      cur = self.zipper.current()
+      cur = self.z.current()
       if isinstance(cur, Comp):
          return self.fetch()
       else:
          raise Exception('fetch_comp used not at a comp')
 
    def fetch_opt(self):
-      cur = self.zipper.current()
+      cur = self.z.current()
       if isinstance(cur, Opt):
          return self.fetch()
       else:
          raise Exception('fetch_opt used not at a opt')
 
    def fetch_pred(self):
-      cur = self.zipper.current()
+      cur = self.z.current()
       if isinstance(cur, Pred):
          return self.fetch()
       else:
          raise Exception('fetch_pred used not at a pred')
 
    def fetch(self):
-      cur = self.zipper.current()
+      cur = self.z.current()
       return cur.fetch(self.fs, self.p, self.log)
 
    def store_file(self, u):
-      cur = self.zipper.current()
+      cur = self.z.current()
       if isinstance(cur, File):
-         contents = FileContens(u)
+         contents = FileContents(u)
          self.fs[self.p] = contents
-         self.log = self.log + fs.get_log()
+         self.log = self.log + self.fs.get_log()
       else:
          raise Exception('store_file used not at a file')
 
    def store_dir(self, s):
-      cur = self.zipper.current()
-      if isinstance(cur, Dir):
+      cur = self.z.current()
+      if not isinstance(cur, File):
          contents = DirContents(s)
          self.fs[self.p] = contents
-         self.log = self.log + fs.get_log()
+         self.log = self.log + self.fs.get_log()
       else:
-         raise Exception('store_dir used not at a dir')
+         raise Exception('store_dir used at a file')
 
    def create_path(self):
-      cur = self.zipper.current()
+      cur = self.z.current()
       if isinstance(cur, Path):
          u = cur.get_exp()
-         new_path = join(self.p, [u])
-         contents = FileContens('')
+         new_path = join(self.p, u)
+         contents = FileContents('')
 
          self.fs[new_path] = contents
 
@@ -188,7 +188,7 @@ class Forest():
          raise Exception('store_path used not at a path')
 
    def goto_name_comp(self, name):
-      cur = self.zipper.current()
+      cur = self.z.current()
       if isinstance(cur, Comp):
          s = cur.get_subspec()
          us = cur.gen()
@@ -197,15 +197,15 @@ class Forest():
          s1 = s(name)
          right_us = [s(us[j]) for j in range(i+1, len(us))]
 
-         self.zipper = Zipper(cur=s1, left=left_us, right=right_us, anc=self.zipper)
+         self.z = Zipper(cur=s1, left=left_us, right=right_us, anc=self.z)
       else:
          raise Exception('goto_name_comp not at a comp')
 
-   def goto_name(self):
-      self.goto_name_comp()
+   def goto_name(self, name):
+      self.goto_name_comp(name)
 
    def goto_pos_comp(self, i):
-      cur = self.zipper.current()
+      cur = self.z.current()
       if isinstance(cur, Comp):
          s = cur.get_subspec()
          us = cur.gen()
@@ -213,24 +213,24 @@ class Forest():
          s1 = s(us[i])
          right_us = [s(us[j]) for j in range(i+1, len(us))]
 
-         self.zipper = Zipper(cur=s1, left=left_us, right=right_us, anc=self.zipper)
+         self.z = Zipper(cur=s1, left=left_us, right=right_us, anc=self.z)
       else:
          raise Exception('goto_pos_comp not at a comp')
 
    def goto_pos_pairs(self, i):
-      cur = self.zipper.current()
+      cur = self.z.current()
       if isinstance(cur, Pair):
          if i == 0:
             self.into_pair()
          else:
             self.into_pair()
             self.next()
-            goto_pos_pairs(i-1)
+            self.goto_pos_pairs(i-1)
       else:
          raise Exception('goto_pos_pairs not at a pair')
 
    def goto_position(self, i):
-      cur = self.zipper.current()
+      cur = self.z.current()
       if isinstance(cur, Comp):
          self.goto_pos_comp(i)
       elif isinstance(cur, Pair):

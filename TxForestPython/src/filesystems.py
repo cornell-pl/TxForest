@@ -1,4 +1,5 @@
 
+from os.path import *
 
 class Contents():
   def __init__(self):
@@ -48,7 +49,7 @@ class MemoryFilesystem(Filesystem):
     self.fs = {
       '/': DirContents(['simple']),
       '/simple' : DirContents(['index.txt', 'dir']),
-      '/simple/index.txt' : FileContents('a\nb\nc\n'),
+      '/simple/index.txt' : FileContents('a\nb\nc'),
       '/simple/dir' : DirContents(['a', 'b', 'c', 'd']),
       '/simple/dir/a' : FileContents('aaa'),
       '/simple/dir/b' : FileContents('bbb'),
@@ -65,7 +66,7 @@ class MemoryFilesystem(Filesystem):
   def _remove_dir(self, path):
     us = self.fs[path].get_lst()
     for u in us:
-      child_path = join(path, [u])
+      child_path = join(path, u)
       if isinstance(self.fs[child_path], FileContents):
         del self.fs[child_path]
       else:
@@ -79,7 +80,7 @@ class MemoryFilesystem(Filesystem):
       self.fs[path] = v
       new_lst = v.get_lst()
       for u in new_lst:
-        child_path = join(path, [u])
+        child_path = join(path, u)
         if not child_path in self.fs:
           self.fs[child_path] = FileContents('')
 
@@ -94,12 +95,11 @@ class MemoryFilesystem(Filesystem):
         old_lst = self.fs[i].get_lst()
         for u in old_lst:
           if not u in new_lst:
-            child_path = join(path, [u])
+            child_path = join(path, u)
             if isinstance(self.fs[child_path], FileContents):
               del self.fs[child_path]
             else:
               self._remove_dir(child_path)
-
     self._simple_add(i, v)
 
 #TODO: realistically this is more complicated but this is the idea we want

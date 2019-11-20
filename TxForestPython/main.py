@@ -3,7 +3,10 @@ from src.forest import Forest
 
 def lines(x):
   #fetch_file (down).split()
-  return x.fetch_file().get_contents().split('\n')
+  x.down()
+  res = x.fetch_file().get_contents().split('\n')
+  x.up()
+  return res
 
 
 if __name__ == '__main__':
@@ -71,13 +74,119 @@ if __name__ == '__main__':
 
   spec = dspec_nicer.desugar()
 
-  forest = Forest(spec, '/')
+  forest = Forest(spec, '/simple')
 
   print forest.fetch()
-  forest.general_into()
+  forest.general_into()   # index :: File , Pair
   print forest.fetch()
-  forest.general_into()
+  forest.general_into()   # File
   print forest.fetch()
+  forest.general_out()    # index :: File , Pair
+  forest.next()           # Pair
+  print forest.fetch()
+  forest.general_into()   # dir :: Comp, Null
+  print forest.fetch()
+  forest.general_into()   # Comp
+  print forest.fetch()
+  forest.general_into()   # a :: File
+  print forest.fetch()
+  forest.next()           # b :: File
+  print forest.fetch()
+  forest.general_into()   # File
+  print forest.fetch()
+  forest.general_out()    # b :: File
+  print forest.fetch()
+  forest.prev()           # a :: File
+  print forest.fetch()
+  forest.general_into()   # File
+  print forest.fetch()
+  forest.general_out()    # a :: File
+  print forest.fetch()
+  forest.general_out()    # Comp
+  print forest.fetch()
+  forest.goto_name('c')   # c :: File
+  print forest.fetch()
+  forest.general_into()   # File
+  print forest.fetch()
+  forest.general_out()    # c :: File
+  print forest.fetch()
+  forest.general_out()    # Comp
+  print forest.fetch()
+  forest.general_out()    # dir :: Comp, Null
+  print forest.fetch()
+  forest.general_out()    # index :: File, Pair
+  print forest.fetch()
+  forest.prev()           # index :: File, Pair
+  print forest.fetch()
+  forest.general_out()    # Pair
+  print forest.fetch()
+  forest.goto_position(1) # dir :: Comp, Null
+  print forest.fetch()
+  forest.down()           # Comp
+  print forest.fetch()
+  forest.goto_position(1) # b :: File
+  print forest.fetch()
+  forest.down()           # File
+  forest.store_file('banana')
+  print forest.fetch()
+  forest.up()             # b :: File
+  print forest.fetch()
+  forest.general_out()    # Comp
+  print forest.fetch()
+  forest.general_out()    # dir :: Comp, Null
+  print forest.fetch()
+  forest.general_out()    # index :: File, Pair
+  print forest.fetch()
+  forest.prev()           # index :: File, Pair
+  print forest.fetch()
+  forest.down()           # File
+  print forest.fetch()
+  forest.store_file('a\nb\nc\nd')
+  print forest.fetch()
+  forest.up()             # index :: File, Pair
+  print forest.fetch()
+  forest.next()           # Pair
+  print forest.fetch()
+  forest.general_into()   # dir :: Comp, Null
+  print forest.fetch()
+  forest.general_into()   # Comp, Null
+  print forest.fetch()
+  forest.general_into()   # a :: File
+  print forest.fetch()
+  forest.next()           # b :: File
+  print forest.fetch()
+  forest.next()           # c :: File
+  print forest.fetch()
+  forest.next()           # d :: File
+  print forest.fetch()
+  forest.general_out()    # Comp
+  forest.store_dir(['a', 'b', 'c', 'd', 'e'])
+  print forest.fetch()
+  forest.general_out()    #dir :: Comp, Null
+  print forest.fetch()
+  forest.general_out()    #index :: File, Pair
+  print forest.fetch()
+  forest.prev()           #index :: File, Pair
+  print forest.fetch()
+  forest.down()           #File
+  print forest.fetch()
+  forest.store_file('a\nb\nc\nd\ne')
+  print forest.fetch()
+  forest.up()             #index :: File, Pair
+  print forest.fetch()
+  forest.next()           #index :: File, Pair
+  print forest.fetch()
+  forest.general_into()   #dir :: Comp, Null
+  print forest.fetch()
+  forest.down()           #Comp
+  print forest.fetch()
+  forest.goto_name('e')   # e :: File
+  print forest.fetch()
+  forest.down()           # File
+  print forest.fetch()
+
+
+
 
 
 
