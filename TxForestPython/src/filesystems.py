@@ -45,7 +45,16 @@ class Filesystem():
 class MemoryFilesystem(Filesystem):
   def __init__(self, path):
     Filesystem.__init__(self, path)
-    self.fs = {}
+    self.fs = {
+      '/': DirContents(['simple']),
+      '/simple' : DirContents(['index.txt', 'dir']),
+      '/simple/index.txt' : FileContents('a\nb\nc\n'),
+      '/simple/dir' : DirContents(['a', 'b', 'c', 'd']),
+      '/simple/dir/a' : FileContents('aaa'),
+      '/simple/dir/b' : FileContents('bbb'),
+      '/simple/dir/c' : FileContents('ccc'),
+      '/simple/dir/d' : FileContents('ddd')
+    }
 
   def __getitem__(self, i):
     return self.fs[i]
@@ -72,7 +81,7 @@ class MemoryFilesystem(Filesystem):
       for u in new_lst:
         child_path = join(path, [u])
         if not child_path in self.fs:
-          self.fs[child_path] FileContents('')
+          self.fs[child_path] = FileContents('')
 
 
 

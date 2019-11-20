@@ -5,16 +5,17 @@ from zipper import *
 from filesystems import *
 from log import *
 from os.path import *
+from specs import *
 
 
 class Forest():
-  def __init__(self, spec, path, ps=[], zipper=None, fs=None, log=None):
+   def __init__(self, spec, path, ps=[], zipper=None, fs=None, log=None):
       self.spec = spec
 
       self.p = path
       self.ps = [path] if ps == [] else ps
       self.zipper = Zipper(cur = self.spec) if zipper == None else zipper
-      self.fs = MemoryFilesystem(self.path) if fs == None else fs
+      self.fs = MemoryFilesystem(self.p) if fs == None else fs
       self.log = [] if log == None else log
 
    def up(self):
@@ -176,7 +177,7 @@ class Forest():
       cur = self.zipper.current()
       if isinstance(cur, Path):
          u = cur.get_exp()
-         new_path = join(self.path, [u])
+         new_path = join(self.p, [u])
          contents = FileContens('')
 
          self.fs[new_path] = contents

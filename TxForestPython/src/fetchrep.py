@@ -12,6 +12,9 @@ class FileRep(FetchRep):
       FetchRep.__init__(self)
       self.contents = contents
 
+   def get_contents(self):
+      return self.contents
+
    def __str__(self):
       return 'file ' + self.contents
 
@@ -19,6 +22,9 @@ class DirRep(FetchRep):
    def __init__(self, contents):
       FetchRep.__init__(self)
       self.contents = contents
+
+   def get_contents(self):
+      return self.contents
 
    def __str__(self):
       return 'dir ' + ', '.join(self.contents)
