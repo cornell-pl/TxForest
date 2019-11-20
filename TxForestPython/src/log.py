@@ -4,10 +4,14 @@ class LogEntry():
   def __init__(self, path):
     self.path = path
 
+  def get_path(self):
+    return self.path
+
 
 class ReadFile(LogEntry):
   def __init__(self, path):
     LogEntry.__init__(self, path)
+
 
 
 class WriteFile(LogEntry):

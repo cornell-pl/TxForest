@@ -246,7 +246,7 @@ class Forest():
 
 
    def commit(self):
-      pass
+      self.fs.commit()
 
 
 

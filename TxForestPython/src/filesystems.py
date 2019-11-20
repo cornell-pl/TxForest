@@ -42,20 +42,25 @@ class Filesystem():
     self.log = []
     return log
 
+  def commit(self):
+    pass
+
+
+global_fs = {
+  '/': DirContents(['simple']),
+  '/simple' : DirContents(['index.txt', 'dir']),
+  '/simple/index.txt' : FileContents('a\nb\nc'),
+  '/simple/dir' : DirContents(['a', 'b', 'c', 'd']),
+  '/simple/dir/a' : FileContents('aaa'),
+  '/simple/dir/b' : FileContents('bbb'),
+  '/simple/dir/c' : FileContents('ccc'),
+  '/simple/dir/d' : FileContents('ddd')
+}
 
 class MemoryFilesystem(Filesystem):
   def __init__(self, path):
     Filesystem.__init__(self, path)
-    self.fs = {
-      '/': DirContents(['simple']),
-      '/simple' : DirContents(['index.txt', 'dir']),
-      '/simple/index.txt' : FileContents('a\nb\nc'),
-      '/simple/dir' : DirContents(['a', 'b', 'c', 'd']),
-      '/simple/dir/a' : FileContents('aaa'),
-      '/simple/dir/b' : FileContents('bbb'),
-      '/simple/dir/c' : FileContents('ccc'),
-      '/simple/dir/d' : FileContents('ddd')
-    }
+    self.fs = global_fs.deepcopy()
 
   def __getitem__(self, i):
     return self.fs[i]
@@ -101,6 +106,10 @@ class MemoryFilesystem(Filesystem):
             else:
               self._remove_dir(child_path)
     self._simple_add(i, v)
+
+  def commit(self):
+    global global_fs
+    global_fs = self.fs.deepcopy()
 
 #TODO: realistically this is more complicated but this is the idea we want
 class PosixFilesystem(Filesystem):
