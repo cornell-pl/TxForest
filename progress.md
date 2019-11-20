@@ -81,12 +81,13 @@ persisitant file systems
   - ie copy the reads to keep the view of the underliying file system consistant
 
 ## This week
-- see the uncommited version stuff above
 - wrote the local forest syntax in a python version
   - navigation
   - storage
   - fetching
   - some nice navigation stuff
+
+-tested with the simple example
 
 
 ## Whats next
