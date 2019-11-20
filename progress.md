@@ -87,7 +87,9 @@ persisitant file systems
   - fetching
   - some nice navigation stuff
 
--tested with the simple example
+- tested with the simple example
+
+- started the trasaction checking, and global stuff, will do the server next
 
 
 ## Whats next
