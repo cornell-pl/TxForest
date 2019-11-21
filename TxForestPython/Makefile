@@ -7,6 +7,9 @@ build:
 test:
 	python main.py
 
+server:
+	python src/server.py
+
 install:
 	echo "TODO: install deps"
 

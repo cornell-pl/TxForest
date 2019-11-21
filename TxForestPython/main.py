@@ -189,6 +189,73 @@ def test_spec5():
   print forest.fetch()
 
 
+def test_spec6():
+  dspec_nicer = Directory({
+    'index' :  lambda : Path('index.txt', File()),
+    'dir' :  lambda : Path(
+      'dir',
+      Comp(
+        lambda x : Path(x, File()),
+        lambda : lines(dspec_nicer['index'])
+      )
+    )
+  })
+
+  spec = dspec_nicer.desugar()
+
+  forest = Forest(spec, '/simple')
+
+  print forest.fetch()
+  forest.general_into()   # index :: File , Pair
+  print forest.fetch()
+  forest.next()           # Pair
+  print forest.fetch()
+  forest.general_into()   # dir :: Comp, Null
+  print forest.fetch()
+  forest.general_into()   # Comp
+  print forest.fetch()
+  forest.general_into()   # a :: File
+  print forest.fetch()
+  forest.next()           # b :: File
+  print forest.fetch()
+  forest.general_into()   # File
+  print forest.fetch()
+  forest.commit()
+
+def test_spec7():
+  dspec_nicer = Directory({
+    'index' :  lambda : Path('index.txt', File()),
+    'dir' :  lambda : Path(
+      'dir',
+      Comp(
+        lambda x : Path(x, File()),
+        lambda : lines(dspec_nicer['index'])
+      )
+    )
+  })
+
+  spec = dspec_nicer.desugar()
+
+  forest = Forest(spec, '/simple')
+
+  print forest.fetch()
+  forest.general_into()   # index :: File , Pair
+  print forest.fetch()
+  forest.next()           # Pair
+  print forest.fetch()
+  forest.general_into()   # dir :: Comp, Null
+  print forest.fetch()
+  forest.general_into()   # Comp
+  print forest.fetch()
+  forest.general_into()   # a :: File
+  print forest.fetch()
+  forest.next()           # b :: File
+  print forest.fetch()
+  forest.general_into()   # File
+  print forest.fetch()
+  forest.store_file('banana')
+  print forest.fetch()
+  forest.commit()
 
 if __name__ == '__main__':
   # test_spec0()
@@ -196,7 +263,7 @@ if __name__ == '__main__':
   # test_spec2()
   # test_spec3()
   # test_spec4()
-  test_spec5()
+  test_spec6()
 
 
 

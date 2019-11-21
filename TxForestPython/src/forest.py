@@ -1,11 +1,15 @@
 
 
+
+from os.path import *
+
 from fetchrep import *
 from zipper import *
 from filesystems import *
 from log import *
-from os.path import *
 from specs import *
+from client import ForestClient
+
 
 
 class Forest():
@@ -17,6 +21,7 @@ class Forest():
       self.z = Zipper(cur = self.spec) if zipper == None else zipper
       self.fs = MemoryFilesystem(self.p) if fs == None else fs
       self.log = [] if log == None else log
+      self.client = None
 
    def up(self):
       self.p = dirname(self.p)
@@ -246,7 +251,17 @@ class Forest():
 
 
    def commit(self):
-      self.fs.commit()
+      if self.client == None:
+         self.client = ForestClient()
+      can_commit = self.client.send_commit(self.log)
+      if can_commit:
+         print 'commiting'
+         self.fs.commit()
+      else:
+         print 'aborting'
+         self.fs.sync()
+
+      self.client.send_finish_commit()
 
 
 

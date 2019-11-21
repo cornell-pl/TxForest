@@ -57,6 +57,9 @@ class Filesystem():
   def commit(self):
     pass
 
+  def sync(self):
+    pass
+
 
 global_fs = {
   '/': DirContents(['simple']),
@@ -120,9 +123,16 @@ class MemoryFilesystem(Filesystem):
               self._remove_dir(child_path)
     self._simple_add(i, v)
 
+  # these dont actually do the thin I want them to, but they
+  # are a stand in until I switch to the read fs
   def commit(self):
     global global_fs
     global_fs = self._copy_fs()
+
+  def sync(self):
+    global global_fs
+    self.fs = global_fs
+    self.fs = self._copy_fs()
 
 #TODO: realistically this is more complicated but this is the idea we want
 class PosixFilesystem(Filesystem):

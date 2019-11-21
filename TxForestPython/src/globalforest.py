@@ -23,7 +23,7 @@ class GlobalForest:
     self.global_lock.acquire()
     paths = self._extract_paths(log)
     for path in paths:
-      if not self._conflict_path(path): return False
+      if self._conflict_path(path): return False
     return True
 
   def finish_commit(self):
