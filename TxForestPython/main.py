@@ -8,59 +8,62 @@ def lines(x):
   x.up()
   return res
 
-
-if __name__ == '__main__':
-  # a = Pair(NullRep(), lambda x: x)
-  # print a
-
-  # #disclaimer, i am only able to pass strings a the spec for
-  # #printing purposes, for the __str__ function I only require
-  # #the subspec objects to have a __str__ function (which all
-  # #python objects do)
-  # b = Directory()
-  # b['a'] = lambda : 'a'
-  # b['b'] = lambda : 'b'
-  # b['c'] = lambda : b['b']
-
-  # print b.desugar()
+def test_spec0():
+  c = Comp(
+    lambda x : Path(x, File()),
+    lambda : ['a', 'b', 'c', 'd', 'e']
+  )
+  print c
 
 
-  # c = Comp(
-  #   lambda x : Path(x, File()),
-  #   lambda : ['a', 'b', 'c', 'd', 'e']
-  # )
+def test_spec1():
+  a = Pair(NullRep(), lambda x: x)
+  print a
 
-  # print c
+def test_spec2():
+  spec = Pair(
+      Path('index.txt', File()),
+      lambda index : Pair(
+        Path(
+          'dir',
+          Comp(
+            lambda x : Path(x, File()),
+            lambda : lines(index)
+          )
+        ),
+        lambda dir : NullRep()
+      )
+    )
 
-  # spec = Pair(
-  #     Path('index.txt', File()),
-  #     lambda index : Pair(
-  #       Path(
-  #         'dir',
-  #         Comp(
-  #           lambda x : Path(x, File()),
-  #           lambda : lines(index)
-  #         )
-  #       ),
-  #       lambda dir : NullRep()
-  #     )
-  #   )
-
-  # print spec
+  print spec
 
 
-  # dspec = Directory()
-  # dspec['index'] = lambda : Path('index.txt', File())
-  # dspec['dir'] = lambda : Path(
-  #   'dir',
-  #   Comp(
-  #     lambda x : Path(x, File()),
-  #     lambda : lines(dspec['index'])
-  #   )
-  # )
+def test_spec3():
+  #disclaimer, i am only able to pass strings a the spec for
+  #printing purposes, for the __str__ function I only require
+  #the subspec objects to have a __str__ function (which all
+  #python objects do)
+  b = Directory()
+  b['a'] = lambda : 'a'
+  b['b'] = lambda : 'b'
+  b['c'] = lambda : b['b']
 
-  # print dspec.desugar()
+  print b.desugar()
 
+def test_spec4():
+  dspec = Directory()
+  dspec['index'] = lambda : Path('index.txt', File())
+  dspec['dir'] = lambda : Path(
+    'dir',
+    Comp(
+      lambda x : Path(x, File()),
+      lambda : lines(dspec['index'])
+    )
+  )
+
+  print dspec.desugar()
+
+def test_spec5():
   dspec_nicer = Directory({
     'index' :  lambda : Path('index.txt', File()),
     'dir' :  lambda : Path(
@@ -184,6 +187,20 @@ if __name__ == '__main__':
   print forest.fetch()
   forest.down()           # File
   print forest.fetch()
+
+
+
+if __name__ == '__main__':
+  # test_spec0()
+  # test_spec1()
+  # test_spec2()
+  # test_spec3()
+  # test_spec4()
+  test_spec5()
+
+
+
+
 
 
 
