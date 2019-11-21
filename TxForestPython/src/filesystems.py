@@ -17,6 +17,9 @@ class FileContents(Contents):
   def get_u(self):
     return self.u
 
+  def copy(self):
+    return FileContents(self.u)
+
   def __str__(self):
     return 'file: ' + self.u
 
@@ -27,6 +30,9 @@ class DirContents(Contents):
 
   def get_lst(self):
     return self.s
+
+  def copy(self):
+    return DirContents(self.s)
 
   def __str__(self):
     return 'dir: ' + ', '.join(self.s)
@@ -41,6 +47,12 @@ class Filesystem():
     log = self.log
     self.log = []
     return log
+
+  def _copy_fs(self):
+    new_fs = {}
+    for i in self.fs:
+      new_fs[i] = self.fs[i].copy()
+    return new_fs
 
   def commit(self):
     pass
@@ -60,7 +72,8 @@ global_fs = {
 class MemoryFilesystem(Filesystem):
   def __init__(self, path):
     Filesystem.__init__(self, path)
-    self.fs = global_fs.deepcopy()
+    self.fs = global_fs
+    self.fs = self._copy_fs()
 
   def __getitem__(self, i):
     return self.fs[i]
@@ -109,7 +122,7 @@ class MemoryFilesystem(Filesystem):
 
   def commit(self):
     global global_fs
-    global_fs = self.fs.deepcopy()
+    global_fs = self._copy_fs()
 
 #TODO: realistically this is more complicated but this is the idea we want
 class PosixFilesystem(Filesystem):
