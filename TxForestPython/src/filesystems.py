@@ -138,9 +138,100 @@ class MemoryFilesystem(Filesystem):
 class PosixFilesystem(Filesystem):
   def __init__(self, path):
     Filesystem.__init__(self, path)
+    self.root_path = path
+    self.temp_path = join(self.root_path, 'temp')
+
+  def _read_file(self, path):
+    file = open(path, 'r')
+    contents = file.read()
+    file.close()
+    return FileContents(contents)
+
+  def _read_dir(self, path):
+    dir_contents = os.listdir(path)
+    return DirContents(dir_contents)
+
+  def _read_path(self, path):
+    if isfile(path):
+      return self._read_file(path)
+    elif isdir(path):
+      return self._read_dir(path)
+    else:
+      raise Exception('path' + path + 'is not a file or directory')
+
+  def _remove_dir(self, path):
+    shutil.rmtree(path)
+
+  def _remove_file(self, path):
+    os.remove(path)
+
+  def _remove(self, path):
+    if isfile(path):
+      self._remove_file(path)
+    elif isdir(path):
+      self._remove_dir(path)
+
+  def _add(self, path, contents):
+    if isinstance(contents, FileContents):
+      file = open(path, 'w+')
+      file.write(contents.get_u())
+      file.flush()
+      file.close()
+    elif isinstance(contents, DirContents):
+      new_lst = contents.get_lst()
+      old_lst = os.listdir(path)
+      for u in new_lst:
+        if not u in old_lst:
+          child_path = join(path, u)
+          self._add(child_path, FileContents(''))
+
+  def _write_path(self, path, contents):
+    if isinstance(contents, FileContents) and isdir(path):
+      self._remove_dir(path)
+    elif isinstance(contents, DirContents) and isdir(path):
+      new_lst = contents.get_lst()
+      old_lst = os.listdir(path)
+      for u in old_lst:
+        if not u in new_lst:
+          child_path = join(path, u)
+          self._remove(child_path)
+    self._add(path, contents)
+
 
   def __getitem__(self, i):
-    return ""
+      rel_path = relpath(i, start=self.root_path)
+      temp_path = join(self.temp_path, rel_path)
+      if exists(temp_path):
+        return self._read_path(temp_path)
+      else:
+        return self._read_path(i)
 
   def __setitem__(self, i, v):
-    pass
+    rel_path = relpath(i, start=self.root_path)
+    temp_path = join(self.temp_path, rel_path)
+    self._write_path(temp_path, v)
+
+  def _copy(self):
+    rel_path = relpath(self.path, start=self.root_path)
+    temp_path = join(self.temp_path, rel_path)
+    children = os.listdir(self.path)
+    for u in children:
+      child_path = join(self.path, u)
+      temp_child_path = join(temp_path, u)
+      if not exists(temp_child_path):
+        if isfile(child_path):
+          contents = self._read_file(child_path)
+          self._add(temp_child_path, contents)
+        elif isdir(child_path):
+          self._add(temp_child_path, DirContents([]))
+
+
+  def goto(self, child):
+    self.path = join(self.path, child)
+    if isdir(self.path):
+      self._copy()
+
+
+
+
+
