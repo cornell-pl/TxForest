@@ -1,5 +1,7 @@
 
 from os.path import *
+import os
+import shutil
 
 class Contents():
   def __init__(self):
@@ -138,8 +140,14 @@ class MemoryFilesystem(Filesystem):
 class PosixFilesystem(Filesystem):
   def __init__(self, path):
     Filesystem.__init__(self, path)
-    self.root_path = path
+    (self.root_path, root) = split(path)
     self.temp_path = join(self.root_path, 'temp')
+    if exists(self.temp_path):
+      self._remove_dir(self.temp_path)
+    os.mkdir(self.temp_path)
+    temp_root = join(self.temp_path, root)
+    os.mkdir(temp_root)
+    self._copy()
 
   def _read_file(self, path):
     file = open(path, 'r')
@@ -149,6 +157,7 @@ class PosixFilesystem(Filesystem):
 
   def _read_dir(self, path):
     dir_contents = os.listdir(path)
+    dir_contents = [c for c in dir_contents if not c[0] == '.']
     return DirContents(dir_contents)
 
   def _read_path(self, path):
@@ -157,7 +166,7 @@ class PosixFilesystem(Filesystem):
     elif isdir(path):
       return self._read_dir(path)
     else:
-      raise Exception('path' + path + 'is not a file or directory')
+      raise Exception('path ' + path + ' is not a file or directory')
 
   def _remove_dir(self, path):
     shutil.rmtree(path)
@@ -178,8 +187,10 @@ class PosixFilesystem(Filesystem):
       file.flush()
       file.close()
     elif isinstance(contents, DirContents):
+      if not exists(path):
+        os.mkdir(path)
       new_lst = contents.get_lst()
-      old_lst = os.listdir(path)
+      old_lst = self._read_dir(path).get_lst()
       for u in new_lst:
         if not u in old_lst:
           child_path = join(path, u)
@@ -188,9 +199,12 @@ class PosixFilesystem(Filesystem):
   def _write_path(self, path, contents):
     if isinstance(contents, FileContents) and isdir(path):
       self._remove_dir(path)
+    elif isinstance(contents, DirContents) and isfile(path):
+      self._remove_file(path)
+      os.mkdir(path)
     elif isinstance(contents, DirContents) and isdir(path):
       new_lst = contents.get_lst()
-      old_lst = os.listdir(path)
+      old_lst = self._read_dir(path).get_lst()
       for u in old_lst:
         if not u in new_lst:
           child_path = join(path, u)
@@ -201,10 +215,7 @@ class PosixFilesystem(Filesystem):
   def __getitem__(self, i):
       rel_path = relpath(i, start=self.root_path)
       temp_path = join(self.temp_path, rel_path)
-      if exists(temp_path):
-        return self._read_path(temp_path)
-      else:
-        return self._read_path(i)
+      return self._read_path(temp_path)
 
   def __setitem__(self, i, v):
     rel_path = relpath(i, start=self.root_path)
@@ -212,9 +223,12 @@ class PosixFilesystem(Filesystem):
     self._write_path(temp_path, v)
 
   def _copy(self):
+    print 'copying path: ' + self.path
     rel_path = relpath(self.path, start=self.root_path)
     temp_path = join(self.temp_path, rel_path)
-    children = os.listdir(self.path)
+    children = self._read_dir(self.path).get_lst()
+    print 'children: '
+    print children
     for u in children:
       child_path = join(self.path, u)
       temp_child_path = join(temp_path, u)

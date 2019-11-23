@@ -19,7 +19,7 @@ class Forest():
       self.p = path
       self.ps = [path] if ps == [] else ps
       self.z = Zipper(cur = self.spec) if zipper == None else zipper
-      self.fs = MemoryFilesystem(self.p) if fs == None else fs
+      self.fs = PosixFilesystem(self.p) if fs == None else fs
       self.log = [] if log == None else log
       self.client = None
 
@@ -37,6 +37,7 @@ class Forest():
          self.log.append(ReadFile(self.p))
          self.p = join(self.p, u)
          self.ps.append(self.p)
+         self.fs.goto(u)
          self.z = Zipper(cur=s, anc=self.z)
       else:
          raise Exception('down not at a path')
