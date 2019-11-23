@@ -2,6 +2,10 @@
 from os.path import *
 import os
 import shutil
+import stat
+import subprocess
+
+from log import *
 
 class Contents():
   def __init__(self):
@@ -143,11 +147,20 @@ class PosixFilesystem(Filesystem):
     (self.root_path, root) = split(path)
     self.temp_path = join(self.root_path, 'temp')
     if exists(self.temp_path):
-      self._remove_dir(self.temp_path)
+      shutil.rmtree(self.temp_path)
     os.mkdir(self.temp_path)
-    temp_root = join(self.temp_path, root)
-    os.mkdir(temp_root)
+    self.temp_root = join(self.temp_path, root)
+    self.real_root = path
+    os.mkdir(self.temp_root)
     self._copy()
+
+    self.commit_path = join(self.root_path, 'commit')
+    self.commit_script = open(self.commit_path, 'w+')
+    st = os.stat(self.commit_path)
+    os.chmod(self.commit_path, st.st_mode | stat.S_IEXEC)
+    self.commit_script.write('#!/bin/sh\n')
+    self.commit_script.write("rsync -a " + self.temp_root + '/ ' + path + '/ \n')
+    self.commit_script.flush()
 
   def _read_file(self, path):
     file = open(path, 'r')
@@ -168,17 +181,21 @@ class PosixFilesystem(Filesystem):
     else:
       raise Exception('path ' + path + ' is not a file or directory')
 
-  def _remove_dir(self, path):
+  def _remove_dir(self, path, real_path):
     shutil.rmtree(path)
+    self.commit_script.write("rm -rf " + real_path + '\n')
+    self.commit_script.flush()
 
-  def _remove_file(self, path):
+  def _remove_file(self, path, real_path):
     os.remove(path)
+    self.commit_script.write("rm " + real_path + '\n')
+    self.commit_script.flush()
 
-  def _remove(self, path):
+  def _remove(self, path, real_path):
     if isfile(path):
-      self._remove_file(path)
+      self._remove_file(path, real_path)
     elif isdir(path):
-      self._remove_dir(path)
+      self._remove_dir(path, real_path)
 
   def _add(self, path, contents):
     if isinstance(contents, FileContents):
@@ -196,11 +213,11 @@ class PosixFilesystem(Filesystem):
           child_path = join(path, u)
           self._add(child_path, FileContents(''))
 
-  def _write_path(self, path, contents):
+  def _write_path(self, path, contents, real_path):
     if isinstance(contents, FileContents) and isdir(path):
-      self._remove_dir(path)
+      self._remove_dir(path, real_path)
     elif isinstance(contents, DirContents) and isfile(path):
-      self._remove_file(path)
+      self._remove_file(path, real_path)
       os.mkdir(path)
     elif isinstance(contents, DirContents) and isdir(path):
       new_lst = contents.get_lst()
@@ -208,19 +225,25 @@ class PosixFilesystem(Filesystem):
       for u in old_lst:
         if not u in new_lst:
           child_path = join(path, u)
-          self._remove(child_path)
+          real_child_path = join(real_path, u)
+          self._remove(child_path, real_child_path)
     self._add(path, contents)
 
 
   def __getitem__(self, i):
-      rel_path = relpath(i, start=self.root_path)
-      temp_path = join(self.temp_path, rel_path)
-      return self._read_path(temp_path)
-
-  def __setitem__(self, i, v):
+    self.log.append(ReadFile(i))
     rel_path = relpath(i, start=self.root_path)
     temp_path = join(self.temp_path, rel_path)
-    self._write_path(temp_path, v)
+    return self._read_path(temp_path)
+
+  def __setitem__(self, i, v):
+    if isinstance(v, FileContents):
+      self.log.append(WriteFile(i, v.get_u()))
+    elif isinstance(v, DirContents):
+      self.log.append(WriteFile(i, v.get_lst()))
+    rel_path = relpath(i, start=self.root_path)
+    temp_path = join(self.temp_path, rel_path)
+    self._write_path(temp_path, v, i)
 
   def _copy(self):
     print 'copying path: ' + self.path
@@ -241,9 +264,29 @@ class PosixFilesystem(Filesystem):
 
 
   def goto(self, child):
+    self.log.append(ReadFile(self.path))
     self.path = join(self.path, child)
     if isdir(self.path):
       self._copy()
+
+  def commit(self):
+    self.commit_script.close()
+    (commit_dir, commit_file) = split(self.commit_path)
+    print self.commit_path
+    subprocess.Popen([self.commit_path]).wait()
+    self.commit_script = open(self.commit_path, 'w+')
+    self.commit_script.write('#!/bin/sh\n')
+    self.commit_script.write("rsync -a " + self.temp_root + '/ ' + self.real_root + '/ \n')
+    self.commit_script.flush()
+    self.log = []
+    shutil.rmtree(self.temp_root)
+    os.mkdir(self.temp_root)
+    subpaths = (relpath(self.path, start=self.root_path)).split('/')
+    self.path = self.root_path
+    for u in subpaths:
+      self.goto(u)
+
+
 
 
 

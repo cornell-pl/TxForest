@@ -220,9 +220,9 @@ def test_spec6(path):
   print forest.fetch()
   forest.general_into()   # File
   print forest.fetch()
-  # forest.commit()
+  forest.commit()
 
-def test_spec7():
+def test_spec7(path):
   dspec_nicer = Directory({
     'index' :  lambda : Path('index.txt', File()),
     'dir' :  lambda : Path(
@@ -236,7 +236,7 @@ def test_spec7():
 
   spec = dspec_nicer.desugar()
 
-  forest = Forest(spec, '/simple')
+  forest = Forest(spec, path)
 
   print forest.fetch()
   forest.general_into()   # index :: File , Pair
@@ -264,7 +264,7 @@ if __name__ == '__main__':
   # test_spec2()
   # test_spec3()
   # test_spec4()
-  test_spec6(path)
+  test_spec7(path)
 
 
 
