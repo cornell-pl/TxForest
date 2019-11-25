@@ -1,3 +1,6 @@
+
+import re
+
 from fetchrep import *
 from log import *
 
@@ -104,6 +107,21 @@ class Comp(Spec):
     # xs = self.gen_xs()
     # x_strings = [x + ' : ' + self.x_to_s(x).__str__() for x in xs]
     return '[ ... ]'
+
+class RegexComp(Comp):
+  def __init__(self, x_to_s, gen_xs):
+    Comp.__init__(self, x_to_s, gen_xs)
+
+  def get_subspec(self):
+    return self.x_to_s
+
+  def gen(self, fs, p):
+    all_files = fs[p].get_lst()
+    return [f for f in all_files if re.match(self.gen_xs, f)]
+
+  def fetch(self, fs, p, log):
+    return CompRep(self.gen(fs, p))
+
 
 
 class Opt(Spec):

@@ -10,6 +10,9 @@ test:
 server:
 	python src/server.py
 
+client:
+	python src/universalclient.py $(PATH)
+
 install:
 	echo "TODO: install deps"
 

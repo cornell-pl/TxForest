@@ -57,7 +57,17 @@ class Forest():
 
    def into_comp(self):
       cur = self.z.current()
-      if isinstance(cur, Comp):
+
+      if isinstance(cur, RegexComp):
+         s = cur.get_subspec()
+         us = cur.gen(self.fs, self.p)
+         cur_u = us[0]
+         del us[0]
+         s1 = s(cur_u)
+         ss = [s(u) for u in us]
+
+         self.z = Zipper(cur=s1, left=[], right=ss, anc=self.z)
+      elif isinstance(cur, Comp):
          s = cur.get_subspec()
          us = cur.gen()
          cur_u = us[0]
