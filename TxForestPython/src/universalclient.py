@@ -53,7 +53,8 @@ class UniversalClient():
         child = self.forest.fetch()
         if isinstance(child, PathRep):
           childrens.append(child.get_u())
-        self.forest.next()
+        if not i == num_children - 1:
+          self.forest.next()
       self.forest.out()
       return childrens
     elif isinstance(res, PairRep):
