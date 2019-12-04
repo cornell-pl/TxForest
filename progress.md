@@ -105,19 +105,17 @@ ocaml examples, added some transactions like looksing up a file, adding a file
 
 
 ## Whats next
+- ocmal:
+  - finish temp fs in ocaml (this is already done in python so shouldn't be too bad in ocaml)
+  - clean up examples
 
-- finish temp fs stuff
-- testing more
+- python:
+  - add more transactions to the indexing example
+  - add the grading example
 
-- python implementation
-  - implement the core forest transaction logic
-  - implement the in mem FS
-  - maybe implement the global semantics
+
+- both
+  - add more comments to the code, and imporve code readabilty
 
 
 ## Long term next
-- document in code more
-- test more
-- port over all examples to this updated version of ocaml
-
-- python version
