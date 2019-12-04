@@ -79,7 +79,6 @@ persisitant file systems
   its not there anymore.
   - ie copy the reads to keep the view of the underliying file system consistant
 
-## Last week
 - wrote the local forest syntax in a python version
   - navigation
   - storage
@@ -90,13 +89,20 @@ persisitant file systems
 
 - started the trasaction checking, and global stuff, will do the server next
 
-## This Week
+## Last Week
 - debugging the local transaction semantics
 - implementing logging
 - implementing global transaction semantics
 - implementing server
 - implement clinet for the forest library
 - implementing basic version of shell
+
+## This Week
+- python: fixed a bug with commit, the script runs from cli but not pytohon
+  - turned out to be an issue with PATH variable, fixed now
+- python: moved the simple index example to version like that of the
+ocaml examples, added some transactions like looksing up a file, adding a file
+
 
 ## Whats next
 
