@@ -1,4 +1,5 @@
 
+
 from os.path import *
 import os
 import shutil
@@ -158,7 +159,7 @@ class PosixFilesystem(Filesystem):
     self.commit_script = open(self.commit_path, 'w+')
     st = os.stat(self.commit_path)
     os.chmod(self.commit_path, st.st_mode | stat.S_IEXEC)
-    self.commit_script.write('#!/bin/sh\n')
+    self.commit_script.write('#!/bin/bash\n')
     self.commit_script.write("rsync -a " + self.temp_root + '/ ' + path + '/ \n')
     self.commit_script.flush()
 
@@ -246,12 +247,12 @@ class PosixFilesystem(Filesystem):
     self._write_path(temp_path, v, i)
 
   def _copy(self):
-    print 'copying path: ' + self.path
+    # print 'copying path: ' + self.path
     rel_path = relpath(self.path, start=self.root_path)
     temp_path = join(self.temp_path, rel_path)
     children = self._read_dir(self.path).get_lst()
-    print 'children: '
-    print children
+    # print 'children: '
+    # print children
     for u in children:
       child_path = join(self.path, u)
       temp_child_path = join(temp_path, u)
@@ -273,9 +274,12 @@ class PosixFilesystem(Filesystem):
     self.commit_script.close()
     (commit_dir, commit_file) = split(self.commit_path)
     print self.commit_path
-    subprocess.Popen([self.commit_path]).wait()
+    subprocess.Popen(self.commit_path, env={"PATH": "$PATH:/bin:/usr/bin/"}).wait()
+    # ex_file = open(self.commit_path, 'rb')
+    # script = ex_file.read()
+    # rc = subprocess.call(script, shell=True)
     self.commit_script = open(self.commit_path, 'w+')
-    self.commit_script.write('#!/bin/sh\n')
+    self.commit_script.write('#!/bin/bash\n')
     self.commit_script.write("rsync -a " + self.temp_root + '/ ' + self.real_root + '/ \n')
     self.commit_script.flush()
     self.log = []

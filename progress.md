@@ -49,7 +49,6 @@ persisitant file systems
   - made updates to use higher order embeding
   - thoughts
 
-## Last week
 - push the forest ocaml stuff client side, so the spec an be there, the fs can be there etc.
   - this is so much cleaner, wow
 
@@ -80,7 +79,7 @@ persisitant file systems
   its not there anymore.
   - ie copy the reads to keep the view of the underliying file system consistant
 
-## This week
+## Last week
 - wrote the local forest syntax in a python version
   - navigation
   - storage
@@ -91,6 +90,13 @@ persisitant file systems
 
 - started the trasaction checking, and global stuff, will do the server next
 
+## This Week
+- debugging the local transaction semantics
+- implementing logging
+- implementing global transaction semantics
+- implementing server
+- implement clinet for the forest library
+- implementing basic version of shell
 
 ## Whats next
 

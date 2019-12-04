@@ -6,7 +6,7 @@ from log import *
 
 class ForestClient():
   def __init__(self):
-    print 'making client'
+    # print 'making client'
     self.host = 'localhost'
     self.port = 22222
     self.conn = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -19,7 +19,7 @@ class ForestClient():
 
   def _send_msg(self, msg):
     try:
-      print 'sending msg: ' + msg
+      # print 'sending msg: ' + msg
       msg = self._prepend_length_to_msg(msg)
       self.conn.send(msg)
     except e, Exception:

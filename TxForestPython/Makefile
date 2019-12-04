@@ -5,13 +5,16 @@ build:
 .SILENT:
 
 test:
-	python main.py
+	python -m tests
 
 server:
 	python src/server.py
 
 client:
-	python src/universalclient.py $(PATH)
+	python -m examples 'universalclient' $(PATH)
+
+index:
+	python -m examples 'index' $(PATH) $(OP) $(I) $(NAME) $(CONTENTS)
 
 install:
 	echo "TODO: install deps"

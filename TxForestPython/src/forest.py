@@ -273,6 +273,7 @@ class Forest():
          self.fs.sync()
 
       self.client.send_finish_commit()
+      return can_commit
 
 
 

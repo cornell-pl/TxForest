@@ -2,8 +2,8 @@
 import sys
 
 
-from specs import *
-from forest import Forest
+from src.specs import *
+from src.forest import Forest
 
 class UniversalClient():
   def __init__(self, path):
@@ -90,13 +90,23 @@ class UniversalClient():
         print res
       elif cmd == 'ls':
         print '    '.join(self.ls())
+      elif cmd == 'touch':
+        file_name = args[0]
+        cur_dir = self.forest.fetch().get_lst()
+        cur_dir.append(file_name)
+        self.forest.store_dir(cur_dir)
+      elif cmd == 'update':
+        v = args[0]
+        self.forest.store_file(v)
       elif cmd == 'commit':
         self.forest.commit()
 
-if __name__ == '__main__':
-  path = sys.argv[1]
 
+def run_operation(path):
   UniversalClient(path).run()
+
+
+
 
 
 

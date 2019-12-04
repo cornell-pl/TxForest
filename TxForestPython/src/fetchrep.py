@@ -38,6 +38,9 @@ class PathRep(FetchRep):
    def get_u(self):
       return self.u
 
+   def get_contents(self):
+      return self.u
+
    def __str__(self):
       return 'path ' + self.u
 
@@ -56,6 +59,9 @@ class CompRep(FetchRep):
       self.xs = xs
 
    def get_xs(self):
+      return self.xs
+
+   def get_contents(self):
       return self.xs
 
    def __str__(self):
