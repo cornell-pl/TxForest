@@ -2,6 +2,7 @@ import sys
 
 import index
 import universalclient
+import grades
 
 
 example = sys.argv[1]
@@ -12,6 +13,13 @@ if example == 'index':
   args = args[2:]
 
   index.run_operation(path, op, args)
+
+elif example == 'grades':
+  path = args[0]
+  op = int(args[1])
+  args = args[2:]
+
+  grades.run_operation(path, op, args)
 
 elif example == 'universalclient':
   path = args[0]
