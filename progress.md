@@ -89,7 +89,6 @@ persisitant file systems
 
 - started the trasaction checking, and global stuff, will do the server next
 
-## Last Week
 - debugging the local transaction semantics
 - implementing logging
 - implementing global transaction semantics
@@ -97,12 +96,20 @@ persisitant file systems
 - implement clinet for the forest library
 - implementing basic version of shell
 
-## This Week
+## Last Week
 - python: fixed a bug with commit, the script runs from cli but not pytohon
   - turned out to be an issue with PATH variable, fixed now
 - python: moved the simple index example to version like that of the
 ocaml examples, added some transactions like looksing up a file, adding a file
 
+## This week
+- added the Pair(Dir, Comp) desugaring of comprehentions
+- added more to the index example, the transactions it includes are:
+  0. read the ith file
+  1. read the file with name
+  2. update the ith file with contents
+  3. update the file with name with contents
+  4. add a file with name and contents
 
 ## Whats next
 - ocmal:
