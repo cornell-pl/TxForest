@@ -103,6 +103,9 @@ class Comp(Spec):
   def fetch(self, fs, p, log):
     return CompRep(self.gen_xs())
 
+  def desugar(self):
+    return Pair(Dir(), lambda this: self)
+
   def __str__(self):
     # xs = self.gen_xs()
     # x_strings = [x + ' : ' + self.x_to_s(x).__str__() for x in xs]

@@ -246,6 +246,17 @@ class PosixFilesystem(Filesystem):
     temp_path = join(self.temp_path, rel_path)
     self._write_path(temp_path, v, i)
 
+  # def add_child(self, i, child):
+  #   if isdir(i):
+  #     old_lst = self._read_dir(i).get_lst()
+  #     if not child in old_lst:
+  #       old_lst.append(child)
+  #       contents = DirContents(old_lst)
+  #       self.__setitem__(self, i, contents)
+  #   elif isfile(i):
+  #     contents = DirContents([child])
+  #     self.__setitem__(self, i, contents)
+
   def _copy(self):
     # print 'copying path: ' + self.path
     rel_path = relpath(self.path, start=self.root_path)
