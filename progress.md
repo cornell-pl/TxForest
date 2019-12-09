@@ -110,6 +110,15 @@ ocaml examples, added some transactions like looksing up a file, adding a file
   2. update the ith file with contents
   3. update the file with name with contents
   4. add a file with name and contents
+- added to the grading example, the transactions it includes are
+  0. read student score by index
+  1. read student score by netid
+  2. update student score by index
+  3. update student score by netid
+  4. calculat stats for a hw
+- made it so the clients running on same server will write to seperate
+tempfiles, so that there can be more than one at one time
+- some other minor debuging
 
 ## Whats next
 - ocmal:
