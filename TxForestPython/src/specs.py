@@ -109,7 +109,7 @@ class Comp(Spec):
   def __str__(self):
     # xs = self.gen_xs()
     # x_strings = [x + ' : ' + self.x_to_s(x).__str__() for x in xs]
-    return '[ ... ]'
+    return '[' + str(self.x_to_s('var')) + ']'
 
 class RegexComp(Comp):
   def __init__(self, x_to_s, gen_xs):
@@ -159,14 +159,17 @@ class Pred(Spec):
   def __str__(self):
     return 'pred'
 
+# note: they dont have an interation in order of insertion until
+# python 3.7, so ordering must be used to ensure that the
+# directory will be ordered as you think it will
 class Directory(Spec):
-  def __init__(self, names_to_specs={}):
+  def __init__(self, names_to_specs={}, ordering=[]):
     Spec.__init__(self)
-    self.names = []
+    self.names = names_to_specs.keys() if ordering == [] else ordering
     self.name_to_spec = {}
     self.name_to_zipper = {}
     for name in names_to_specs:
-      self.add(name, names_to_specs[name])
+      self.name_to_spec[name] = names_to_specs[name]
 
   def add(self, name, to_spec):
     self.name_to_spec[name] = to_spec

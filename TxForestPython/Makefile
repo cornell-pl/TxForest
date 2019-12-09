@@ -17,7 +17,7 @@ index:
 	python -m examples 'index' $(PATH) $(OP) $(I) $(NAME) $(CONTENTS)
 
 grades:
-	python -m examples 'grades' $(PATH) $(OP) $(HW) $(I) $(NAME)
+	python -m examples 'grades' $(PATH) $(OP) $(HW) $(I) $(NAME) $(SCORE)
 
 install:
 	echo "TODO: install deps"

@@ -207,7 +207,7 @@ class Forest():
       cur = self.z.current()
       if isinstance(cur, Comp):
          s = cur.get_subspec()
-         us = cur.gen()
+         us = cur.gen(self.fs, self.p) if isinstance(cur, RegexComp) else cur.gen()
          i = us.index(name)
          left_us = [s(us[j]) for j in range(0, i)]
          s1 = s(name)
@@ -224,7 +224,7 @@ class Forest():
       cur = self.z.current()
       if isinstance(cur, Comp):
          s = cur.get_subspec()
-         us = cur.gen()
+         us = cur.gen(self.fs, self.p) if isinstance(cur, RegexComp) else cur.gen()
          left_us = [s(us[j]) for j in range(0, i)]
          s1 = s(us[i])
          right_us = [s(us[j]) for j in range(i+1, len(us))]
