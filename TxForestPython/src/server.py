@@ -1,10 +1,23 @@
 
 import socket
-from threading import Thread
+from threading import Thread, Lock
 import json
 
 from log import *
 from globalforest import GlobalForest
+
+
+client_id = 0
+id_lock = Lock()
+
+def get_id():
+  global client_id, id_lock
+  id_lock.acquire()
+  i = client_id
+  client_id = client_id + 1
+  id_lock.release()
+  return i
+
 
 class ClientHandler(Thread):
   def __init__(self, conn, gf):
@@ -60,7 +73,11 @@ class ClientHandler(Thread):
         s = data.split()
         cmd = s[0]
         rest = ' '.join(s[1:])
-        if cmd == 'commit':
+        if cmd == 'getid':
+          i = get_id()
+          resp = 'id ' + str(i)
+          self._send_msg(resp)
+        elif cmd == 'commit':
           print 'commit requested'
           log = self._parse_log(rest)
           can_commit = self.globalforest.commit(log)

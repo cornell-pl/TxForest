@@ -54,6 +54,22 @@ class ForestClient():
         return msg
 
 
+  def getid(self):
+    msg = 'getid'
+    self._send_msg(msg)
+
+    resp = self._wait_for_resp()
+    s = resp.split()
+    cmd = s[0]
+    if cmd == 'id':
+      cid = int(s[1])
+      return cid
+    else:
+      print 'getod: server sent the wrong thing'
+      return -1
+
+
+
   def send_commit(self, log):
     json_log = [serialize_le(le) for le in log]
     string_log = json.dumps(json_log)

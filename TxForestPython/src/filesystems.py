@@ -143,10 +143,10 @@ class MemoryFilesystem(Filesystem):
 
 #TODO: realistically this is more complicated but this is the idea we want
 class PosixFilesystem(Filesystem):
-  def __init__(self, path):
+  def __init__(self, path, cid):
     Filesystem.__init__(self, path)
     (self.root_path, root) = split(path)
-    self.temp_path = join(self.root_path, 'temp')
+    self.temp_path = join(self.root_path, 'temp' + str(cid))
     if exists(self.temp_path):
       shutil.rmtree(self.temp_path)
     os.mkdir(self.temp_path)

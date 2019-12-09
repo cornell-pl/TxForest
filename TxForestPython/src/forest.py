@@ -16,12 +16,15 @@ class Forest():
    def __init__(self, spec, path, ps=[], zipper=None, fs=None, log=None):
       self.spec = spec
 
+      self.client = ForestClient() if fs == None else None
+      cid = None if self.client == None else self.client.getid()
+
       self.p = path
       self.ps = [path] if ps == [] else ps
       self.z = Zipper(cur = self.spec) if zipper == None else zipper
-      self.fs = PosixFilesystem(self.p) if fs == None else fs
+      self.fs = PosixFilesystem(self.p, cid) if fs == None else fs
       self.log = [] if log == None else log
-      self.client = None
+
 
    def up(self):
       self.p = dirname(self.p)
