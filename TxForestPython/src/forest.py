@@ -11,8 +11,37 @@ from specs import *
 from client import ForestClient
 
 
-
 class Forest():
+   '''forest api: this is an object oriented twist on the forest dsl
+
+      instead of executing commands with a conext as in the functional forest
+      dsl, you construct an object which represents that context, and then
+      call methods on it to alter than context.
+
+      This class represents the context for forest.
+
+      this is a higher order embeding of the langauage, so vraiables in forest
+      turn into lambas where they are used
+
+      In addition to the standard navigation, storage, fetches
+      this also includes some nicer operations:
+      - goto_position, go to the ith item in a comprehension, or the ith
+      nested pair.
+      - goto_name, goto the child with a certain name in a comprhension
+
+      TODO: implement mapreduce for map and fold on this for nicer interaction
+
+      constructor: to construct a forest obect pass in a Spec and string path
+      for the root of the filesystem, the other optional parameters should
+      not be passed in, they are only used when constructing a forest object
+      from another (i.e. for dependent pairs)
+
+      - example:
+         spec = Spec(...)
+         path = "/..."
+         forest = Forest(spec, path)
+   '''
+
    def __init__(self, spec, path, ps=[], zipper=None, fs=None, log=None):
       self.spec = spec
 
@@ -27,11 +56,36 @@ class Forest():
 
 
    def up(self):
+      '''Move out of the subspec of a path spec, the dual is down
+         - returns: None
+         - raises:
+
+         - example:
+            name = "..."
+            subspec = Spec(...)
+            spec = Path(name, subspec)
+            path = "/..."
+            forest = Forest(spec, path)
+            forest.down()
+            forest.up()
+      '''
       self.p = dirname(self.p)
       self.z = self.z.ancestor()
 
-
    def down(self):
+      '''Move into the subspec of a path spec, the dual is up
+         - returns: None
+         - raises:
+
+         - example:
+            name = "..."
+            subspec = Spec(...)
+            spec = Path(name, subspec)
+            path = "/..."
+            forest = Forest(spec, path)
+            forest.down()
+            forest.up()
+      '''
       cur = self.z.current()
       if isinstance(cur, Path):
          u = cur.get_exp()
@@ -46,6 +100,18 @@ class Forest():
          raise Exception('down not at a path')
 
    def into_pair(self):
+      '''Move into the left subspec of a pair spec, the dual is out
+         - returns: None
+         - raises:
+
+         - example:
+            subspec = Spec(...)
+            spec = Pair(subspec, subspec)
+            path = "/..."
+            forest = Forest(spec, path)
+            forest.into_pair()
+            forest.out()
+      '''
       cur = self.z.current()
       if isinstance(cur, Pair):
          s1 = cur.leftspec()
@@ -59,6 +125,18 @@ class Forest():
          raise Exception('into_pair not at a pair')
 
    def into_comp(self):
+      '''Move into the first subspec of a comp spec, the dual is out
+         - returns: None
+         - raises:
+
+         - example:
+            subspec = Spec(...)
+            spec = Comp(subspec, [...])
+            path = "/..."
+            forest = Forest(spec, path)
+            forest.into_comp()
+            forest.out()
+      '''
       cur = self.z.current()
 
       if isinstance(cur, RegexComp):
@@ -83,6 +161,18 @@ class Forest():
          raise Exception('into_comp not at a comp')
 
    def into_opt(self):
+      '''Move into the subspec of a opt spec, if it exists, the dual is out
+         - returns: None
+         - raises:
+
+         -example:
+            subspec = Spec(...)
+            spec = Opt(subspec)
+            path = "/..."
+            forest = Forest(spec, path)
+            forest.into_opt()
+            forest.out()
+      '''
       cur = self.z.current()
       if isinstance(cur, Opt):
          s = cur.get_subspec()
@@ -91,9 +181,34 @@ class Forest():
          raise Exception('into_opt not at a opt')
 
    def out(self):
+      '''Move out of a subspec of a non Path spec, the duals are
+         into_pair, into_opt, into_comp
+         - returns: None
+         - raises:
+
+         example:
+         subspec = Spec(...)
+         spec = Comp(subspec, [...])
+         path = "/..."
+         forest = Forest(spec, path)
+         forest.into_comp()
+         forest.out()
+      '''
       self.z = self.z.ancestor()
 
    def general_into(self):
+      '''Move into of a subspec of a spec, the dual is general_into
+         - returns: None
+         - raises:
+
+         example:
+         subspec = Spec(...)
+         spec = Comp(subspec, [...])
+         path = "/..."
+         forest = Forest(spec, path)
+         forest.general_into()
+         forest.general_out()
+      '''
       cur = self.z.current()
       if isinstance(cur, Path):
          self.down()
@@ -107,6 +222,18 @@ class Forest():
          raise Exception('general_into not at a path, pair, comp, opt')
 
    def general_out(self):
+      '''Move out of a subspec of a spec, the dual is general_into
+         - returns: None
+         - raises:
+
+         - example:
+            subspec = Spec(...)
+            spec = Comp(subspec, [...])
+            path = "/..."
+            forest = Forest(spec, path)
+            forest.general_into()
+            forest.general_out()
+      '''
       anc = self.z.ancestor().current()
       if isinstance(anc, Path):
          self.up()
@@ -116,12 +243,50 @@ class Forest():
          raise Exception('general_out not at a path, pair, comp, opt')
 
    def next(self):
+      '''Move to the next subspec of a pair or comprehension, the dual is prev
+         - returns: None
+         - raises:
+
+         - example:
+            subspec = Spec(...)
+            spec = Comp(subspec, [...])
+            path = "/..."
+            forest = Forest(spec, path)
+            forest.general_into()
+            forest.next()
+            forest.prev()
+      '''
       self.z.right()
 
    def prev(self):
+      '''Move to the previous subspec of a pair or comprehension, the dual
+         is next
+         - returns: None
+         - raises:
+
+         - example:
+            subspec = Spec(...)
+            spec = Comp(subspec, [...])
+            path = "/..."
+            forest = Forest(spec, path)
+            forest.general_into()
+            forest.next()
+            forest.prev()
+      '''
       self.z.left()
 
    def fetch_file(self):
+      ''' Reads the contents of a File of a File spec
+         - returns: FileRep(contents) where contents is a string of
+                    the contents of the file
+         - raises: Exception if the current spec is not a File
+
+         - example:
+            spec = File()
+            path = "/..."
+            forest = Forest(spec, path)
+            forest.fetch_file()
+      '''
       cur = self.z.current()
       if isinstance(cur, File):
          return self.fetch()
@@ -129,6 +294,17 @@ class Forest():
          raise Exception('fetch_file used not at a file')
 
    def fetch_dir(self):
+      ''' Reads the contents of a directory of a Dir Spec
+         - returns: DirRep(contents) where contents is a list of the
+                    names of the files with in this directory
+         - raises: Exception if the current spec is not a Dir
+
+         - example:
+            spec = Dir()
+            path = "/..."
+            forest = Forest(spec, path)
+            forest.fetch_dir()
+      '''
       cur = self.z.current()
       if isinstance(cur, Dir):
          return self.fetch()
@@ -136,6 +312,17 @@ class Forest():
          raise Exception('fetch_dir used not at a dir')
 
    def fetch_pair(self):
+      ''' returns an empty class if the current spec is a Pair
+         - returns: PairRep()
+         - raises: Exception if the current spec is not a Pair
+
+         - example:
+            subspec = Spec(...)
+            spec = Pair(subspec, lambda x: subspec )
+            path = "/..."
+            forest = Forest(spec, path)
+            forest.fetch_pair()
+      '''
       cur = self.z.current()
       if isinstance(cur, Pair):
          return self.fetch()
@@ -143,6 +330,18 @@ class Forest():
          raise Exception('fetch_pair used not at a pair')
 
    def fetch_path(self):
+      ''' reads the name of the subspec of a Path spec
+         - returns: PathRep(name) where name is the name of the subspec
+         - raises: Exception if the current spec is not a PAth
+
+         - example:
+            name = "...""
+            subspec = Spec(...)
+            spec = Path(name, subspec )
+            path = "/..."
+            forest = Forest(spec, path)
+            forest.fetch_path()
+      '''
       cur = self.z.current()
       if isinstance(cur, Path):
          return self.fetch()
@@ -150,6 +349,19 @@ class Forest():
          raise Exception('fetch_path used not at a path')
 
    def fetch_comp(self):
+      ''' reads the names of the children of a Comprehension spec
+         - returns: CompRep(names) where names is a list are the string
+                    names of the children of the comprehension
+         - raises: Exception if the current spec is not a Comp
+
+         - example:
+            names = [...]
+            subspec = Spec(...)
+            spec = Comp(subspec, lambda: names)
+            path = "/..."
+            forest = Forest(spec, path)
+            forest.fetch_comp()
+      '''
       cur = self.z.current()
       if isinstance(cur, Comp):
          return self.fetch()
@@ -157,6 +369,18 @@ class Forest():
          raise Exception('fetch_comp used not at a comp')
 
    def fetch_opt(self):
+      ''' reads a boolean representing if the subspec of an Opt exists
+         - returns: OptRep(exist) where exist is a boolean indicating if
+                    the subspec exists
+         - raises: Exception if the current spec is not a Opt
+
+         - example:
+            subspec = Spec(...)
+            spec = Opt(subspec)
+            path = "/..."
+            forest = Forest(spec, path)
+            forest.fetch_opt()
+      '''
       cur = self.z.current()
       if isinstance(cur, Opt):
          return self.fetch()
@@ -164,6 +388,19 @@ class Forest():
          raise Exception('fetch_opt used not at a opt')
 
    def fetch_pred(self):
+      ''' reads a boolean representing if the predicate is true for
+          the existing file system for an Pred spec
+         - returns: PredRep(values) where value is a boolean indicating if
+                    the predicate is true or false
+         - raises: Exception if the current spec is not a Pred
+
+         - example:
+            predicate = lambda: ...
+            spec = Pred(predicate)
+            path = "/..."
+            forest = Forest(spec, path)
+            forest.fetch_pred()
+      '''
       cur = self.z.current()
       if isinstance(cur, Pred):
          return self.fetch()
@@ -171,6 +408,16 @@ class Forest():
          raise Exception('fetch_pred used not at a pred')
 
    def fetch(self):
+      ''' reads the current spec, see above fetches for more information
+         - returns: FetchRep()
+         - raises:
+
+         - example:
+            spec = File()
+            path = "/..."
+            forest = Forest(spec, path)
+            forest.fetch()
+      '''
       cur = self.z.current()
       return cur.fetch(self.fs, self.p, self.log)
 
