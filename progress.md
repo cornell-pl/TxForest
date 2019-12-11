@@ -119,6 +119,7 @@ ocaml examples, added some transactions like looksing up a file, adding a file
 - made it so the clients running on same server will write to seperate
 tempfiles, so that there can be more than one at one time
 - some other minor debuging
+- documenting the forest lib
 
 ## Whats next
 - ocmal:
