@@ -422,6 +422,16 @@ class Forest():
       return cur.fetch(self.fs, self.p, self.log)
 
    def store_file(self, u):
+      '''writes the string [u] as the contents of the current Spec
+         - returns: None
+         - raises: Exception if the current spec is not a file
+
+         - example:
+            spec = File()
+            path = "/..."
+            forest = Forest(spec, path)
+            forest.store_file('yay')
+      '''
       cur = self.z.current()
       if isinstance(cur, File):
          contents = FileContents(u)
@@ -431,6 +441,20 @@ class Forest():
          raise Exception('store_file used not at a file')
 
    def store_dir(self, s):
+      '''creates files for the names in the list [s] as sub-children of the
+         current spec
+         - returns: None
+         - raises: Exception if the current spec is a file (this should
+           technically only work at a Dir, but for now it allows you to
+           do this anywhere that could plausably be a dir. However writing a
+           dir somewhere there shouldnt be could cause future errors)
+
+         - example:
+            spec = Dir()
+            path = "/..."
+            forest = Forest(spec, path)
+            forest.store_dir(['yay', 'whoo'])
+      '''
       cur = self.z.current()
       if not isinstance(cur, File):
          contents = DirContents(s)
@@ -440,6 +464,18 @@ class Forest():
          raise Exception('store_dir used at a file')
 
    def create_path(self):
+      '''creates a file at the current path
+         - returns: None
+         - raises: Exception if the current spec is not a Path
+
+         - example:
+            name = "..."
+            subspec = Spec(...)
+            spec = Path(name, Spec)
+            path = "/..."
+            forest = Forest(spec, path)
+            forest.create_path()
+      '''
       cur = self.z.current()
       if isinstance(cur, Path):
          u = cur.get_exp()
@@ -454,6 +490,19 @@ class Forest():
          raise Exception('store_path used not at a path')
 
    def goto_name_comp(self, name):
+      '''Like into_comp, but goes to the child with name [name] instead of the
+         first child
+         - returns: None
+         - raises: Exception if the cirrent spec is not a Comp or name is not
+                   a child of the current comprehension
+
+         - example:
+            subspec = Spec(...)
+            spec = Comp(subspec, ['yay', ...])
+            path = "/..."
+            forest = Forest(spec, path)
+            forest.goto_name_comp('yay')
+      '''
       cur = self.z.current()
       if isinstance(cur, Comp):
          s = cur.get_subspec()
@@ -468,9 +517,24 @@ class Forest():
          raise Exception('goto_name_comp not at a comp')
 
    def goto_name(self, name):
+      '''see goto_name_comp
+      '''
       self.goto_name_comp(name)
 
    def goto_pos_comp(self, i):
+      '''Like into_comp, but goes to the [i]th child instead of the
+         first child
+         - returns: None
+         - raises: Exception if the current spec is no a Comp or i
+                   is larger than the number of children
+
+         - example:
+            subspec = Spec(...)
+            spec = Comp(subspec, ['yay', 'whoo', ...])
+            path = "/..."
+            forest = Forest(spec, path)
+            forest.goto_pos_comp(1)
+      '''
       cur = self.z.current()
       if isinstance(cur, Comp):
          s = cur.get_subspec()
@@ -484,6 +548,18 @@ class Forest():
          raise Exception('goto_pos_comp not at a comp')
 
    def goto_pos_pairs(self, i):
+      '''goes to the [i]th subspec of a chain of nested pairs
+         - returns: None
+         - raises: Exception if the current spec is no a Pair, or there
+                   is no ith nested subspec
+
+         - example:
+            subspec = Spec(...)
+            spec = Pair(subspec, Pair(subspec, lambda x: subspec))
+            path = "/..."
+            forest = Forest(spec, path)
+            forest.goto_pos_pairs(1)
+      '''
       cur = self.z.current()
       if isinstance(cur, Pair):
          if i == 0:
@@ -496,6 +572,8 @@ class Forest():
          raise Exception('goto_pos_pairs not at a pair')
 
    def goto_position(self, i):
+      '''see goto_pos_pairs and goto_pos_comp
+      '''
       cur = self.z.current()
       if isinstance(cur, Comp):
          self.goto_pos_comp(i)
@@ -512,6 +590,18 @@ class Forest():
 
 
    def commit(self):
+      '''commits the global file system or abords depending on the
+         severs permission
+         - returns: None
+         - raises:
+
+         - example:
+            subspec = Spec(...)
+            spec = Pair(subspec, Pair(subspec, lambda x: subspec))
+            path = "/..."
+            forest = Forest(spec, path)
+            forest.commit()
+      '''
       if self.client == None:
          self.client = ForestClient()
       can_commit = self.client.send_commit(self.log)
