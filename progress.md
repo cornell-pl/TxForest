@@ -127,9 +127,8 @@ tempfiles, so that there can be more than one at one time
   - clean up examples
 
 - python:
-  - add more transactions to the indexing example
-  - add the grading example
-
+  - maybe add nomalizing to the grading example
+  - coment the non main libraries and move the python forest stuff to the main readme, and clean up
 
 - both
   - add more comments to the code, and imporve code readabilty
