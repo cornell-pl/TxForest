@@ -47,3 +47,6 @@ executables
 
 #python files
 *.pyc
+
+# Other
+commit

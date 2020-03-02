@@ -1,3 +1,4 @@
+SetupPath="example_fs_root"
 
 all: build
 
@@ -11,13 +12,13 @@ server:
 	python src/server.py
 
 client:
-	python -m examples 'universalclient' $(PATH)
+	python -m examples 'universalclient' $(SetupPath)
 
 index:
-	python -m examples 'index' $(PATH) $(OP) $(I) $(NAME) $(CONTENTS)
+	python -m examples 'index' $(SetupPath) $(OP) $(I) $(NAME) $(CONTENTS)
 
 grades:
-	python -m examples 'grades' $(PATH) $(OP) $(HW) $(I) $(NAME) $(SCORE)
+	python -m examples 'grades' $(SetupPath) $(OP) $(HW) $(I) $(NAME) $(SCORE)
 
 install:
 	echo "TODO: install deps"

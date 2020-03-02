@@ -1,0 +1,2 @@
+#!/bin/bash
+rsync -a example_fs_root/temp9/simple/ example_fs_root/simple/ 
