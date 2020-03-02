@@ -12,7 +12,7 @@ server:
 	python src/server.py
 
 client:
-	python -m examples 'universalclient' $(SetupPath)
+	rlwrap python -m examples 'universalclient' $(SetupPath)
 
 index:
 	python -m examples 'index' $(SetupPath) $(OP) $(I) $(NAME) $(CONTENTS)
