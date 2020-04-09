@@ -48,12 +48,12 @@ let set_score_input ~hw ?student ?score () =
  let map_scores ~f hwDir = 
   Sys.ls_dir hwDir
   |> List.iter ~f:(fun name -> 
-      if name <> "max"
+      if not (String.equal name "max")
       then 
         let file = hwDir ^/ name in
         let score = get_score file in
         let score_new = f score in
-        let _ = Printf.printf "Score before/after = %d / %d\n" score score_new in
+        let () = Printf.printf "Score before/after = %d / %d\n" score score_new in
         set_score score_new file
     )
 
@@ -69,7 +69,7 @@ let renorm featmin featmax goalmin goalmax score =
 
 let get_min_max hwDir =
   Sys.fold_dir ~init:(Int.max_value,Int.min_value) ~f:(fun (l,h) name -> 
-    if name = "max"
+    if String.equal name "max"
     then (l,h)
     else 
       let score = get_score (hwDir ^/ name) in

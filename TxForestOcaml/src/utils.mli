@@ -71,3 +71,10 @@ val info_message : ?id:Async.Writer.Id.t -> string  -> string -> unit
 val writable_of_fetch: fetch_rep -> writeable_fetch_rep
 val fetch_of_writable: writeable_fetch_rep -> fetch_rep
 
+
+open Async
+
+val write_marshal : flags:Marshal.extern_flags list -> Writer.t -> 'a -> unit
+  
+val write_struct : Writer.t -> 'a -> unit
+val block : (unit -> 'a Deferred.t) -> 'a

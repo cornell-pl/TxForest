@@ -88,7 +88,7 @@ let check_path_preconditions (((fs, working_path, l), p): t) :t or_fail=
       mk_err "path precondition check - parent of curent path ( %s ) does not exist" p
     else if not (is_dir_helper fs parent_dir) then
       mk_err "path precondition check - parent of curent path ( %s ) is not a drectory" p
-    else if (!working_path) <> parent_dir then
+    else if not (String.equal !working_path parent_dir) then
       mk_err "path precondition check - working directory ( %s ) does not match parent ( %s ) of current path ( %s )" (!working_path) parent_dir p
     else
       mk_ok ((fs, working_path, l), p)
@@ -183,7 +183,7 @@ let make_directory ( new_lst: string list) (((fs, working_path, l), p): t)  : t 
     let (rem_lst: string list) = List.filter cur_lst ~f:(fun u -> not (List.mem new_lst u ~equal:String.equal)) in
     let (add_lst: string list) = List.filter new_lst ~f:(fun u -> not (List.mem cur_lst u ~equal:String.equal)) in
       List.iter rem_lst ~f:(fun u -> remove_helper fs (Filename.concat p u));
-      List.iter add_lst ~f:(fun u -> let _ = make_file_helper fs (Filename.concat p u) "" in ());
+      List.iter add_lst ~f:(fun u -> make_file_helper fs (Filename.concat p u) "");
       FS.set fs ~key:p ~data:(Some (Dir new_lst));
       mk_ok ((fs, working_path, l'), p)
 
@@ -265,11 +265,12 @@ let run_txn ~(f : fs -> 'a or_fail) () : ('a,txError) Core.result =
   | Error _ -> Error TxError
 
 
-let loop_txn ~(f : fs -> 'a) () =
+(* TODO: Why does this do what you think it does?! *)
+let loop_txn ~(f : fs -> 'a) () : 'a =
   let x : 'a option ref = ref None in
   let apply fs =
     x := Some(f fs);
     mk_ok fs
   in
-    run_txn ~f:apply ();
+    let _ : (fs,txError) Core.result = run_txn ~f:apply () in
     Option.value_exn ~message:"loop_txn: Something went horribly wrong" !x

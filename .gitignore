@@ -23,11 +23,10 @@
 *.dvi
 *.synctex.*
 
-# ocamlbuild working directory
+# Dune files and working directory
 *_build/
-
-# Dune files
 *.install
+*.opam
 
 # Merlin files
 *.merlin

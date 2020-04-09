@@ -2,10 +2,6 @@ open Async
 open Rawforest
 open Utils
 
-
-
-let write_struct = Writer.write_marshal ~flags:[]
-
 type command =
   | Commit of log
   | CommitFinished
