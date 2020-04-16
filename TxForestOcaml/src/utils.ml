@@ -69,7 +69,7 @@ let ignore_ret x _ = Result.Ok x
 let f_ret ~f z = f z; mk_ok z
 
 let info_message ?id smsg input =
-  let input = Core.String.rstrip ~drop:((=) '\n') input in
+  let input = Core.String.rstrip ~drop:(Char.equal '\n') input in
   match id with
   | None -> print_endline (Printf.sprintf "%s - %s" smsg input)
   | Some id -> print_endline (Printf.sprintf "%s - %s: %s" smsg (Async.Writer.Id.to_string id) input)
@@ -97,3 +97,15 @@ let fetch_of_writable wf =
   | WOptRep b -> OptRep b
   | WPredRep b -> PredRep b
   | WNullRep -> NullRep
+
+  open Async
+
+  let write_marshal ~flags writer to_marshal = 
+    Marshal.to_string to_marshal flags 
+    |> Async.Writer.write writer
+    
+  let write_struct writer to_marshal = 
+    Marshal.to_string to_marshal [] 
+    |> Async.Writer.write writer
+    
+  let block = Thread_safe.block_on_async_exn

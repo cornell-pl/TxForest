@@ -60,14 +60,14 @@ let create (p': path) : t or_fail =
 let make_file (u: string) (((fs, working_path), _) :t)  :t or_fail =
   let stringified_path = !working_path in
   let entry = File u in
-  let _ = FS.set fs ~key:stringified_path ~data:entry in
+  let () = FS.set fs ~key:stringified_path ~data:entry in
     mk_ok ((fs, working_path), stringified_path)
 
 (*TODO: make this do the checking*)
 let make_directory ( new_lst: string list)  (((fs, working_path), _): t) : t or_fail =
   let stringified_path = !working_path in
   let entry = (Dir new_lst) in
-  let _ = FS.set fs ~key:stringified_path ~data:entry in
+  let () = FS.set fs ~key:stringified_path ~data:entry in
     mk_ok ((fs, working_path), stringified_path)
 
 (*TODO: make this do the checking and add the file?*)
@@ -77,8 +77,8 @@ let add_to_directory (u:string) (((fs, working_path), _): t)  : t or_fail =
     match cur_entry with
     | Some (Dir lst) -> begin
         let entry = Dir (List.dedup_and_sort ~compare:String.compare (u::lst)) in
-        let _ = FS.set fs ~key:stringified_path ~data:entry in
-        let _ = FS.set fs ~key:(stringified_path ^ "/" ^ u) ~data:(File "") in
+        let () = FS.set fs ~key:stringified_path ~data:entry in
+        let () = FS.set fs ~key:(stringified_path ^ "/" ^ u) ~data:(File "") in
           mk_ok ((fs, working_path), stringified_path)
     end
     | _ -> failwith "unimplemted"
@@ -146,7 +146,7 @@ let loop_txn ~(f : fs -> 'a) () =
     x := Some(f fs);
     mk_ok fs
   in
-    run_txn ~f:apply ();
+    let _ : (fs,txError) Core.result = run_txn ~f:apply () in
     Option.value_exn ~message:"loop_txn: Something went horribly wrong" !x
 
 

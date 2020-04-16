@@ -15,7 +15,7 @@ open Result.Let_syntax
 
   hws = directory {
       rubric is "rubric" :: file;
-      students is [student :: students | student <- matches GL "*", $student <> "rubric"$];
+      students is [student :: students | student <- matches GL "*", $not (String.equal student "rubric")$];
     }
 
   grades = directory {
@@ -293,7 +293,7 @@ let add_to_grade_queue ~hw ?student ~problem z =
   let%bind z' = goto "queue" z >>= create_path >>= down in
   let%bind queue =
     fetch_file z' >>= fun v ->
-    if v = "" then mk_ok {assigned = []; unassigned = []}
+    if String.equal "" v then mk_ok {assigned = []; unassigned = []}
     else Yojson.Safe.from_string v |> queue_of_yojson
   in
   let unassigned =
@@ -422,7 +422,7 @@ let assign_grade grader z =
 
 let tx_grade ?grader () =
   let grader = Option.value_exn ~message:"tx_grade: Grader is required for this operation" grader in
-  let _ = loop_txn grades_spec "/grades" ~f:(get_next grader) () in
+  let _ : TxForest.t = loop_txn grades_spec "/grades" ~f:(get_next grader) () in
   loop_txn grades_spec "/grades" ~f:(assign_grade grader) ()
 
 let () =

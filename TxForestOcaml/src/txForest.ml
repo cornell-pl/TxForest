@@ -106,7 +106,6 @@ let eval_forest_navigation fn (ctxt, fs, l) : t or_fail =
         ((p', ps, z'), fs', l)
   end
   | Into_Pair, {current = (env_l, DPair(x,s1,s2)); _ } -> begin
-      let ctxt' = (p, make_zipper (env_l, s1)) in
       let env_r = add_to_dirEnv ~key:x ~data:(p, make_zipper (env_l, s1), l) env_l in
       let z' = make_zipper ~ancestor:z (env_l, s1) ~right:[(env_r, s2)] in
         mk_ok ((p, ps, z'), fs, l)
@@ -332,7 +331,7 @@ let rec update_global_fs (ll: log) (fs: PermFS.t)  : PermFS.t or_fail =
 
 let merge (ll: log) (p:path) : unit =
   let fs = PermFS.create p in
-  let _ = fs >>= (update_global_fs ll) in
+  let _ : PermFS.t or_fail = fs >>= (update_global_fs ll) in
     ()
 
 

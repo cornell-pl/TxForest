@@ -1,7 +1,7 @@
 (executable
   (public_name paper_ocaml)
   (name paperExOCaml)
-  (preprocess (pps ppx_jane))
+  (preprocess (pps ppx_jane ppx_forest ppx_deriving_yojson ppx_deriving.eq))
   (libraries core)
   (modules PaperExOCaml)
   (package forest)

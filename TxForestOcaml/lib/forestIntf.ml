@@ -235,7 +235,7 @@ module ForestCoreOpen = struct
 
     let rec goto_dir_name u t =
       match%bind fetch t with
-      | PairRep x when x = u -> into_pair t
+      | PairRep x when String.equal x u -> into_pair t
       | PairRep _ -> into_pair t >>= next >>= goto_dir_name u
       | NullRep -> mk_err "%s is not in this directory specification" u
       | _ -> mk_err "Goto_dir_name can only be used in a directory"
@@ -265,12 +265,10 @@ module TxForestCoreOpen = struct
   include ForestCoreOpen
 
   open Async
-  let write_struct = Writer.write_marshal ~flags:[]
-  let block = Thread_safe.block_on_async_exn
 
   let send_and_receive : command -> (t * Reader.t * Writer.t) -> (t * Reader.t * Writer.t) out
     = fun command (t, reader,writer) ->
-      block
+      Rawforest.Utils.block
       ( fun () ->
         write_struct writer command;
         Reader.read_marshal reader
@@ -385,7 +383,7 @@ module ForestCoreExn  = struct
 
     let rec goto_dir_name u t =
       match fetch t with
-      | PairRep x when x = u -> into_pair t
+      | PairRep x when String.equal x u -> into_pair t
       | PairRep _ -> into_pair t |> next |> goto_dir_name u
       | NullRep -> failwithf "%s is not in this directory specification" u ()
       | _ -> failwith "Goto_dir_name can only be used in a directory"
@@ -412,8 +410,7 @@ module TxForestCoreExn = struct
   include ForestCoreExn
 
   open Async
-  let write_struct = Writer.write_marshal ~flags:[]
-  let block = Thread_safe.block_on_async_exn
+  open Utils
 
   let send_and_receive : command -> (t * Reader.t * Writer.t) -> (t * Reader.t * Writer.t)
     = fun command (t, reader,writer) ->
@@ -684,7 +681,7 @@ module ForestS  = struct
     let rec goto u t =
       let open ForestCoreOpen in
       match%bind fetch t with
-      | PairRep x when x = u -> into_pair t
+      | PairRep x when String.equal x u -> into_pair t
       | PairRep _ -> into_pair t >>= next >>= goto u
       | NullRep -> mk_err "%s is not in this directory specification" u
       | _ -> mk_err "Goto can only be used in a directory"
@@ -749,13 +746,13 @@ let get_var map var =
 
 let regexp_match_from_string reg str =
   try
-    let _ = Str.search_forward (Str.regexp reg) str 0 in
+    let _ : int = Str.search_forward (Str.regexp reg) str 0 in
     true
   with Not_found | Not_found_s _ -> false [@@warning "-3"]
 
 let glob_match_from_string reg str =
   try
-    let _ = Re.exec (Re.compile (Re.Glob.glob reg)) str in
+    let _ : Re.Group.t = Re.exec (Re.compile (Re.Glob.glob reg)) str in
     true
   with Not_found | Not_found_s _ -> false [@@warning "-3"]
 

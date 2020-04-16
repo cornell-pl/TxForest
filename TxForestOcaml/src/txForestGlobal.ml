@@ -14,7 +14,7 @@ type ts = float
 type global_log = (ts * le) list
 
 let global_log : global_log ref = ref []
-let global_mutex : Mutex.t = Mutex.create ()
+let global_mutex : Error_checking_mutex.t = Error_checking_mutex.create ()
 
 let conflict_path (p':path) (e: le) : bool =
   match e with
@@ -33,10 +33,10 @@ let check_log (ll: log) (ts: ts) : bool =
   let gl = (!global_log) in
   let paths = extract_paths ll in
   let b = List.map paths ~f:(fun p ->
-      let conflicts = List.map gl ~f:(fun (ts', le) -> ts' < ts || not (conflict_path p le) ) in
-        not (List.mem conflicts false ~equal:(fun b1 b2 -> b1 = b2))
+      let conflicts = List.map gl ~f:(fun (ts', le) -> Float.(<) ts' ts || not (conflict_path p le) ) in
+        not (List.mem conflicts false ~equal:Bool.equal)
   ) in
-    not (List.mem b false ~equal:(fun b1 b2 -> b1 = b2))
+    not (List.mem b false ~equal:Bool.equal)
 
 
 let update_global_log (ll: log) : unit =
@@ -46,7 +46,7 @@ let update_global_log (ll: log) : unit =
 
 
 let commit (ll: log) (t : t) : t or_fail  =
-  Mutex.lock global_mutex;
+  Error_checking_mutex.lock global_mutex;
   let ts = Unix.time () in
   if check_log ll ts then begin
     (*there are no conflicts, transaction may proceed*)
@@ -59,5 +59,5 @@ let commit (ll: log) (t : t) : t or_fail  =
   end
 
 let finish_commit t : t or_fail =
-  Mutex.unlock global_mutex;
+  Error_checking_mutex.unlock global_mutex;
   mk_ok t

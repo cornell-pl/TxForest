@@ -12,11 +12,11 @@ let i = "index"
 [%%txforest {|
   d = directory {
       index is i :: file;
-      data is [x :: file | x <- matches GL "*" , $x = "foo"$ ];
+      data is [x :: file | x <- matches GL "*" , $String.equal x "foo"$ ];
     }
 
   f = directory {
-      x is "foo" :: file where $fetch_file this = "yay"$;
+      x is "foo" :: file where $String.equal "yay" (fetch_file this)$;
       y is $down x |> fetch_file$ :: file option
     }
 |}]
