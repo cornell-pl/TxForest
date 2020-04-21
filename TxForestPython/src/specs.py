@@ -11,6 +11,9 @@ class Spec():
   def fetch(self, fs, p, log):
     pass
 
+  def desugar(self):
+    return self
+
   def __str__(self):
     return ""
 

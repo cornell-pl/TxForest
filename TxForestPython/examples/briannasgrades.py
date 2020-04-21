@@ -20,7 +20,7 @@ class BriannasGrades():
   def __init__(self, path):
 
     dstudent = File()
-    dassignments = RegexComp( lambda a : Path(a, dstudent), '.*')
+    dassignments = RegexComp( lambda a : Path(a, dstudent.desugar()), '.*')
     dassign_list = RegexComp( lambda hw : Path(hw, dassignments.desugar()), '.*')
 
     dfaculty = Directory({
