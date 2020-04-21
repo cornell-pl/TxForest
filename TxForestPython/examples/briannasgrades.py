@@ -4,6 +4,21 @@ import sys
 from src.specs import *
 from src.forest import Forest
 
+# 1. Implement a simple function and add it to this interface
+#    - Look at forest.py for instructions on what various commands do 
+# 2. Implement a function that prints the filestore tree
+#    - Hacky solution: Add a print_tree function to each spec in
+#      specs.py
+#    -- For most specs it would roughly print the contents and call
+#       itself on any subspecification (with additional formatting)
+#    - Better solution (eventually): Add a traverse function
+#      to forest.py and pass in a function that will do the right
+#      thing based on the node type
+# 3. Make 'make test' work. You don't need to keep all of the tests,
+#    just make a single one run (and it can be your own instead of one
+#    that already exists).
+
+
 # CS4999 = dir { 
 #   fac is "Faculty" :: Faculty;
 #   assign list is "Assignment List" :: assign_list;
@@ -18,7 +33,6 @@ from src.forest import Forest
 
 class BriannasGrades():
   def __init__(self, path):
-
     dstudent = File()
     dassignments = RegexComp( lambda a : Path(a, dstudent.desugar()), '.*')
     dassign_list = RegexComp( lambda hw : Path(hw, dassignments.desugar()), '.*')
@@ -78,8 +92,6 @@ class BriannasGrades():
       res.reverse()
       return res
     return []
-
-
 
 
   def run(self):
