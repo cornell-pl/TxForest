@@ -5,27 +5,27 @@ from src.specs import *
 from src.forest import Forest
 
 # CS4999 = dir { 
-#   fac is “Faculty” :: Faculty;
-#   assign list is “Assignment List” :: assign_list;
+#   fac is "Faculty" :: Faculty;
+#   assign list is "Assignment List" :: assign_list;
 #  }
 # Faculty = dir { 
-#   phd is “PhD” :: file;
-#   ug is “Undergrad” :: file;
+#   phd is "PhD" :: file;
+#   ug is "Undergrad" :: file;
 # }
-# assign_list = [ hw :: Assignments | hw <- matches “.*” ]
-# Assignments = [ a :: Student | a <- matches “.*”]
+# assign_list = [ hw :: Assignments | hw <- matches ".*" ]
+# Assignments = [ a :: Student | a <- matches ".*"]
 # Student = file
 
-class UniversalClient():
+class BriannasGrades():
   def __init__(self, path):
 
     dstudent = File()
-    dassignments = RegexComp( lambda a : Path(a, dstudent.desugar()), '.*')
+    dassignments = RegexComp( lambda a : Path(a, dstudent), '.*')
     dassign_list = RegexComp( lambda hw : Path(hw, dassignments.desugar()), '.*')
 
     dfaculty = Directory({
-      'phd' : lambda : Path('PhD', File()),
-      'ug' : lambda : Path('Undergrad', File())
+      'phd' : lambda : Path('PhD.csv', File()),
+      'ug' : lambda : Path('Undergrad.csv', File())
     })
 
     dcs4999 = Directory({
@@ -119,7 +119,7 @@ class UniversalClient():
 
 
 def run_operation(path):
-  UniversalClient(path).run()
+  BriannasGrades(path).run()
 
 
 

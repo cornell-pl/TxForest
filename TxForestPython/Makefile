@@ -15,7 +15,7 @@ client:
 	rlwrap python -m examples 'universalclient' $(SetupPath)
 
 briannasgrades:
-	rlwrap python -m examples 'briannasgrades' $("cs4999")
+	rlwrap python -m examples 'briannasgrades' "cs4999"
 
 index:
 	python -m examples 'index' $(SetupPath) $(OP) $(I) $(NAME) $(CONTENTS)
