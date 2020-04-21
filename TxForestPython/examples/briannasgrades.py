@@ -6,41 +6,39 @@ from src.forest import Forest
 
 # CS4999 = dir { 
 #   fac is “Faculty” :: Faculty;
-#   assign is “Projects” :: Projects;
+#   assign list is “Assignment List” :: assign_list;
 #  }
 # Faculty = dir { 
-#   phd is “phd” :: file;
-#   ug is “undergrad” :: file;
+#   phd is “PhD” :: file;
+#   ug is “Undergrad” :: file;
 # }
-# Projects = [ hw :: Assignments | hw <- matches “.*” ]
+# assign_list = [ hw :: Assignments | hw <- matches “.*” ]
 # Assignments = [ a :: Student | a <- matches “.*”]
 # Student = file
 
 class UniversalClient():
   def __init__(self, path):
-    dcs4999 = Directory({
-      'fac' : lambda : Path('faculty', dfaculty),
-      'assign' : lambda : Path('projects', dprojects)
-    })
-
-    dfaculty = Directory({
-      'phd' : lambda : Path('phd', File()),
-      'ug' : lambda : Path('undergrad', File())
-    })
-
-    dprojects = RegexComp( lambda hw : Path(hw, dassignments), '.*')
-
-    dassignments = RegexComp( lambda a : Path(a, dstudent), '.*')
 
     dstudent = File()
+    dassignments = RegexComp( lambda a : Path(a, dstudent.desugar()), '.*')
+    dassign_list = RegexComp( lambda hw : Path(hw, dassignments.desugar()), '.*')
 
-# not sure if everything actually needs de-sugaring
+    dfaculty = Directory({
+      'phd' : lambda : Path('PhD', File()),
+      'ug' : lambda : Path('Undergrad', File())
+    })
+
+    dcs4999 = Directory({
+      'fac' : lambda : Path('Faculty', dfaculty.desugar()),
+      'assign list' : lambda : Path('Assignment List', dassign_list.desugar())
+    })
+
+    # faculty = dfaculty.desugar()
+    # assign_list = dassign_list.desugar()
+    # assignments = dassignments.desugar()
+    # student = dstudent.desugar()
     cs4999 = dcs4999.desugar()
-    faculty = dfaculty.desugar()
-    projects = dprojects.desugar()
-    assignments = dassignments.desugar()
-    student = dstudent.desugar()
-    self.forest = Forest(cs, path)
+    self.forest = Forest(cs4999, path)
 
   def ls_pair(self):
     res = self.forest.fetch()
