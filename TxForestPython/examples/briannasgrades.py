@@ -14,9 +14,13 @@ from src.forest import Forest
 #    - Better solution (eventually): Add a traverse function
 #      to forest.py and pass in a function that will do the right
 #      thing based on the node type
+#    -- At the end, you can try to construct a dot file instead of
+#       normal printing
 # 3. Make 'make test' work. You don't need to keep all of the tests,
 #    just make a single one run (and it can be your own instead of one
 #    that already exists).
+
+
 
 
 # CS4999 = dir { 

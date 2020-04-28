@@ -96,6 +96,7 @@ class Forest():
          self.ps.append(self.p)
          self.fs.goto(u)
          self.z = Zipper(cur=s, anc=self.z)
+         self.fetch()
       else:
          raise Exception('down not at a path')
 
