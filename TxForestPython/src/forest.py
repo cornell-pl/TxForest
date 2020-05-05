@@ -10,6 +10,8 @@ from log import *
 from specs import *
 from client import ForestClient
 
+import os
+
 
 class Forest():
    '''forest api: this is an object oriented twist on the forest dsl
@@ -583,13 +585,6 @@ class Forest():
       else:
          raise Exception('goto_name not at a comp or pair')
 
-   def fold(self):
-      pass
-
-   def map(self):
-      pass
-
-
    def commit(self):
       '''commits the global file system or abords depending on the
          severs permission
@@ -616,5 +611,69 @@ class Forest():
       self.client.send_finish_commit()
       return can_commit
 
+
+   # attempt at a tree traversal to fetch
+   def fetch_tree_one(self): 
+      list_dirs = os.walk(self) 
+      for root, dirs, files in list_dirs: 
+         for d in dirs:
+               print os.path.join(root, d)
+         for f in files: 
+               print os.path.join(root, f) 
+
+   def is_leaf(self, cur):
+      # these aren't leaves
+      if isinstance(cur, Dir): 
+         return isinstance(cur, Dir)
+      elif isinstance(cur, File): 
+         return isinstance(cur, File)
+      elif isinstance(cur, Pair): 
+         return isinstance(cur, Pair)
+      elif isinstance(cur, Path): 
+         return isinstance(cur, Path)
+      elif isinstance(cur, Comp): 
+         return isinstance(cur, Comp)
+      elif isinstance(cur, Opt): 
+         return isinstance(cur, Opt)
+      elif isinstance(cur, Pred): 
+         return isinstance(cur, Pred)
+      else: raise Exception('not a leaf')
+
+   def get_children(self, cur):
+      # inefficient/can i just use fetch?
+      if self.is_leaf(cur):
+         if isinstance(cur, Dir): 
+            return str(self.fetch_dir())
+         elif isinstance(cur, File): 
+            return str(self.fetch_file())
+         elif isinstance(cur, Pair): 
+            return str(self.fetch_pair())
+         elif isinstance(cur, Path): 
+            return str(self.fetch_path())
+         elif isinstance(cur, Comp): 
+            return str(self.fetch_comp())
+         elif isinstance(cur, Opt): 
+            return str(self.fetch_opt())
+         elif isinstance(cur, Pred): 
+            return str(self.fetch_pred())
+         else: raise Exception('can\'t fetch')
+      else:
+         return self
+      # cur = self.z.current()
+      # if self.is_leaf(cur):
+      #     return str(self.fetch())
+      # else: 
+      #     return self
+
+   def reduce_f(self, children, cur):
+      result = ""
+      if self.is_leaf(cur):
+         return cur
+      else:
+         print(result.join(children))
+
+   def fetch_tree_two(self):
+      cur = self.z.current()
+      self.reduce_f(self.get_children(cur), cur)
 
 
