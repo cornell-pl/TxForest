@@ -281,6 +281,9 @@ class PosixFilesystem(Filesystem):
     if isdir(self.path):
       self._copy()
 
+  def up(self):
+    self.path = dirname(self.path)
+
   def commit(self):
     self.commit_script.close()
     (commit_dir, commit_file) = split(self.commit_path)

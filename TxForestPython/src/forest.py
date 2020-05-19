@@ -72,6 +72,8 @@ class Forest():
             forest.up()
       '''
       self.p = dirname(self.p)
+      self.ps.pop()
+      self.fs.up()
       self.z = self.z.ancestor()
 
    def down(self):
@@ -647,24 +649,24 @@ class Forest():
       cur = self.z.current()
       print self.fetch()
       if self.has_child(cur):
-         if isinstance(cur, RegexComp):
-            # try to fix into for regexcomp
-            s = cur.get_subspec()
-            us = cur.gen(self.fs, self.p)
-            if len(us) == 0:
-               print "oh no"
-            else:
-               cur_u = us[0]
-               del us[0]
-               s1 = s(cur_u)
-               ss = [s(u) for u in us]
-               self.z = Zipper(cur=s1, left=[], right=ss, anc=self.z)
-            # self.traverse()
-            # self.general_out()
-         else:
-            self.general_into() # current = 2; left = []; right = [1]; up = z
-            self.traverse()
-            self.general_out() # z
+         # if isinstance(cur, RegexComp):
+         #    # try to fix into for regexcomp
+         #    s = cur.get_subspec()
+         #    us = cur.gen(self.fs, self.p)
+         #    if len(us) == 0:
+         #       print "oh no"
+         #    else:
+         #       cur_u = us[0]
+         #       del us[0]
+         #       s1 = s(cur_u)
+         #       ss = [s(u) for u in us]
+         #       self.z = Zipper(cur=s1, left=[], right=ss, anc=self.z)
+         #    # self.traverse()
+         #    # self.general_out()
+         # else:
+         self.general_into() # current = 2; left = []; right = [1]; up = z
+         self.traverse()
+         self.general_out() # z
       if self.has_next(): 
          self.next() # {current = *; left = [+]; right = []; up = Top}
          self.traverse()
