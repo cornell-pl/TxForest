@@ -176,6 +176,7 @@ def test_spec5(path):
     # print forest.fetch()
     # forest.down()  # File
     # print forest.fetch()
+    forest.commit()
 
 
 def test_spec6(path):
@@ -254,8 +255,8 @@ def test_spec8(path):
     dspec_nicer = Directory({'index': lambda: Path('index.txt', File())})
     spec = dspec_nicer.desugar()
     forest = Forest(spec, path)
-    print forest.traverse()  # "pair\npath index.txt\nfile a\nb\nc\nd\n\nNone"
-
+    forest.traverse()  # "pair\npath index.txt\nfile a\nb\nc\nd\n\nNone"
+    return
 
 def test_spec9(path):
     print "begin test 9"
@@ -267,10 +268,12 @@ def test_spec9(path):
     forest = Forest(spec, path)
     # "pair\npath index.txt\nfile a\nb\nc\nd\n
     #  pair\npath index.txt\nfile a\nb\nc\nd\nNone\nNone"
-    print forest.traverse
+    forest.traverse()
+    return
 
 
 def test_spec10(path):
+    print "begin test 10"
     dspec_nicer = Directory({
         'index':
         lambda: Path('index.txt', File()),
@@ -283,4 +286,5 @@ def test_spec10(path):
 
     spec = dspec_nicer.desugar()
     forest = Forest(spec, path)
-    print forest.traverse
+    forest.traverse()
+    return
