@@ -296,6 +296,7 @@ class PosixFilesystem(Filesystem):
     self.commit_script.write('#!/bin/bash\n')
     self.commit_script.write("rsync -a " + self.temp_root + '/ ' + self.real_root + '/ \n')
     self.commit_script.flush()
+    self.commit_script.close()
     self.log = []
     shutil.rmtree(self.temp_root)
     os.mkdir(self.temp_root)
