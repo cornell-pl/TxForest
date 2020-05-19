@@ -10,26 +10,6 @@ def lines(x):
     return res
 
 
-def test_spec00():
-    c = RegexComp(lambda a: Path(a, File()), '.*')
-    print c
-
-
-def test_spec02():
-    spec = RegexComp(lambda a: Path(a, File()),
-                     RegexComp(lambda b: Path(b, File()), '.*'))
-
-    Pair(
-        Path('index.txt', File()), lambda index: Pair(
-            Path('dir', Comp(lambda x: Path(x, File()), lambda: lines(index))),
-            lambda dir: NullRep()))
-
-    print spec
-
-
-#-----------------------------------
-
-
 def test_spec0():
     c = Comp(lambda x: Path(x, File()), lambda: ['a', 'b', 'c', 'd', 'e'])
     assert (str(c) == "[var :: file]")
@@ -265,3 +245,43 @@ def test_spec7(path):
     forest.store_file('banana')
     print forest.fetch()
     forest.commit()
+
+
+#################################
+
+
+def test_spec8(path):
+    print "begin test 8"
+    dspec_nicer = Directory({'index': lambda: Path('index.txt', File())})
+    spec = dspec_nicer.desugar()
+    forest = Forest(spec, path)
+    print forest.traverse()  # "pair\npath index.txt\nfile a\nb\nc\nd\n\nNone"
+
+
+def test_spec9(path):
+    print "begin test 9"
+    dspec_nicer = Directory({
+        'index1': lambda: Path('index.txt', File()),
+        'index2': lambda: Path('index.txt', File())
+    })
+    spec = dspec_nicer.desugar()
+    forest = Forest(spec, path)
+    # "pair\npath index.txt\nfile a\nb\nc\nd\n
+    #  pair\npath index.txt\nfile a\nb\nc\nd\nNone\nNone"
+    print forest.traverse
+
+
+def test_spec10(path):
+    dspec_nicer = Directory({
+        'index':
+        lambda: Path('index.txt', File()),
+        'dir':
+        lambda: Path(
+            'dir',
+            Comp(lambda x: Path(x, File()), lambda: lines(dspec_nicer['index'])
+                 ))
+    })
+
+    spec = dspec_nicer.desugar()
+    forest = Forest(spec, path)
+    print forest.traverse

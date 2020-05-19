@@ -611,69 +611,73 @@ class Forest():
       self.client.send_finish_commit()
       return can_commit
 
+   def has_child(self, cur):
+      return (isinstance(cur, Pair)
+      or isinstance(cur, Path)
+      or isinstance(cur, RegexComp)
+      or isinstance(cur, Comp)
+      or isinstance(cur, Opt))
 
-   # attempt at a tree traversal to fetch
-   def fetch_tree_one(self): 
-      list_dirs = os.walk(self) 
-      for root, dirs, files in list_dirs: 
-         for d in dirs:
-               print os.path.join(root, d)
-         for f in files: 
-               print os.path.join(root, f) 
+   def has_next(self):
+      return (self.z.r != [])
 
-   def is_leaf(self, cur):
-      # these aren't leaves
-      if isinstance(cur, Dir): 
-         return isinstance(cur, Dir)
-      elif isinstance(cur, File): 
-         return isinstance(cur, File)
-      elif isinstance(cur, Pair): 
-         return isinstance(cur, Pair)
-      elif isinstance(cur, Path): 
-         return isinstance(cur, Path)
-      elif isinstance(cur, Comp): 
-         return isinstance(cur, Comp)
-      elif isinstance(cur, Opt): 
-         return isinstance(cur, Opt)
-      elif isinstance(cur, Pred): 
-         return isinstance(cur, Pred)
-      else: raise Exception('not a leaf')
+   # Traverse:
+   # - Zipper: 
+   #            up
+   # left <- current -> right
 
-   def get_children(self, cur):
-      # inefficient/can i just use fetch?
-      if self.is_leaf(cur):
-         if isinstance(cur, Dir): 
-            return str(self.fetch_dir())
-         elif isinstance(cur, File): 
-            return str(self.fetch_file())
-         elif isinstance(cur, Pair): 
-            return str(self.fetch_pair())
-         elif isinstance(cur, Path): 
-            return str(self.fetch_path())
-         elif isinstance(cur, Comp): 
-            return str(self.fetch_comp())
-         elif isinstance(cur, Opt): 
-            return str(self.fetch_opt())
-         elif isinstance(cur, Pred): 
-            return str(self.fetch_pred())
-         else: raise Exception('can\'t fetch')
-      else:
-         return self
-      # cur = self.z.current()
-      # if self.is_leaf(cur):
-      #     return str(self.fetch())
-      # else: 
-      #     return self
-
-   def reduce_f(self, children, cur):
-      result = ""
-      if self.is_leaf(cur):
-         return cur
-      else:
-         print(result.join(children))
-
-   def fetch_tree_two(self):
+   # 1 + 4 * 3
+   # Tree:
+   #           +
+   #         1   *
+   #            4  3
+   # Goal: Go to every node exactly once and print it
+   # - print current node
+   # - Move to first child (if exists)
+   # -- Call traverse
+   # - Move to right-sibling (next) (if exists)
+   # -- Call traverse
+   # - Move up
+   # Invariants:
+   # - After a call to traverse, I am back at the current node
+   # - Print at every node (exactly once)
+   # - When I return, all of my children and all of my right-siblings have had
+   #   traverse called on them
+   def traverse(self):
       cur = self.z.current()
-      self.reduce_f(self.get_children(cur), cur)
+      print self.fetch()
+      if self.has_child(cur):
+         if isinstance(cur, RegexComp):
+            # try to fix into for regexcomp
+            s = cur.get_subspec()
+            us = cur.gen(self.fs, self.p)
+            if len(us) == 0:
+               print "oh no"
+            else:
+               cur_u = us[0]
+               del us[0]
+               s1 = s(cur_u)
+               ss = [s(u) for u in us]
+               self.z = Zipper(cur=s1, left=[], right=ss, anc=self.z)
+            # self.traverse()
+            # self.general_out()
+         else:
+            self.general_into() # current = 2; left = []; right = [1]; up = z
+            self.traverse()
+            self.general_out() # z
+      if self.has_next(): 
+         self.next() # {current = *; left = [+]; right = []; up = Top}
+         self.traverse()
+         self.prev() # z 
+      return
 
+   # Tree:
+   #             +
+   #         +      *
+   #        2  1   4  3
+   # Top = {current = +; left = []; right = []; up = None}
+   # After 'down': z = {current = +; left = []; right = [*]; up = Top}
+ 
+   
 
+   # fold/reduce is the king of functions. 

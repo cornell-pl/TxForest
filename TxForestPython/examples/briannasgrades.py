@@ -48,7 +48,7 @@ class BriannasGrades():
 
     dcs4999 = Directory({
       'fac' : lambda : Path('Faculty', dfaculty.desugar()),
-      'assign list' : lambda : Path('Assignment List', dassign_list.desugar())
+      'assign list' : lambda : Path('AssList', dassign_list.desugar())
     })
 
     # faculty = dfaculty.desugar()
@@ -132,6 +132,10 @@ class BriannasGrades():
         self.forest.store_file(v)
       elif cmd == 'commit':
         self.forest.commit()
+      elif cmd == 'traverse':
+        self.forest.traverse()
+      else:
+        print 'this command does not exist'
 
 
 def run_operation(path):
