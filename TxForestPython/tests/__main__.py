@@ -13,5 +13,5 @@ test_spec6(path)
 test_spec7(path)
 
 test_spec8(path)
-test_spec9(path)
-test_spec10(path)
+#test_spec9(path)
+#test_spec10(path)

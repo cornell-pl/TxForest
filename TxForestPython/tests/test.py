@@ -71,10 +71,9 @@ def test_spec5(path):
     print forest.fetch()
     forest.general_into()  # index :: File , Pair
     print forest.fetch()
-    # forest.general_into()  # File
-    # print forest.fetch()
-    # TODO: JDL FIX THIS
-    # forest.general_out()  # index :: File , Pair
+    forest.general_into()  # File
+    print forest.fetch()
+    forest.general_out()  # index :: File , Pair
     forest.next()  # Pair
     print forest.fetch()
     forest.general_into()  # dir :: Comp, Null
