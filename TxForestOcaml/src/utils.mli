@@ -46,7 +46,7 @@ type writeable_fetch_rep =
 type le =
   | Read of contents * path
   | Write_file of contents * contents * path
-  | Write_directoy of contents * contents * path
+  | Write_directory of contents * contents * path
 
 (* local log
  * list of things that I have done and would liek to commit

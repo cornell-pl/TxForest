@@ -1,7 +1,7 @@
 open Core
 open Rawforest
 open Utils
-open Forest
+open TxForest
 open ForestIntf
 open Result
 open Result.Let_syntax

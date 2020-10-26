@@ -4,7 +4,7 @@
 
 open Core
 open Result
-open Forest
+open TxForest
 open ForestIntf
 open TxForestCoreExn
 
@@ -37,6 +37,10 @@ let write_fetch fr =
     | Ok fr -> write_endline (show_fetch_rep fr)
     | Error u -> write_endline u
 
+let write_fetch_debug fr =
+  match fr with
+    | Ok fr -> d "%s" (show_fetch_rep fr)
+    | Error u -> d "%s" u
 
 (* Helper functions *)
 
@@ -169,6 +173,10 @@ let rec fscommands =
     "down", arg0 ~f:down;
     "update", arg1 ~f:TxForestCore.store_file;
     "touch", arg1 ~f:touch;
+    (* TODO: Mkdir does not quite work as expected. I think the idea
+        is to have users touch a file, then go to it and 'mkdir', but
+        this only works at a directory specification and apparently
+        that causes an error instead *)
     "mkdir", arg0 ~f:(TxForestCore.store_dir String.Set.empty);
 (*     "rm", arg1 ~f:(remove_child); *)
     "quit", arg0 ~f:return;
@@ -193,7 +201,8 @@ and perform_command input t =
     | None -> mk_error "Command `%s` does not exist" command
     | Some(f) -> f t rest
 
-let rec shell_loop n t =
+let rec shell_loop n ((z,_,_) as t) =
+  TxForestCore.fetch z |> write_fetch_debug;
   let input = read_and_prompt n t in
   if String.is_prefix ~prefix:"quit" input
   then (write := Core.ignore; Ok t)
@@ -238,5 +247,5 @@ let () =
        flag "-host" (optional_with_default "localhost" string)
        ~doc:"Host for shard to connect to (default 'localhost')"
      in
-     fun () -> (start_client path ~port ~host () |> shell_loop 0); ()
+     fun () -> set_debug ();(start_client path ~port ~host () |> shell_loop 0); ()
     ] |> Command.run

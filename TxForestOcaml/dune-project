@@ -12,68 +12,14 @@
 (maintainers "dilorenzo@cs.cornell.edu")
 
 (package
-  (name forest)
+  (name txForest)
   (synopsis "An OCaml library for Processing Ad Hoc Filestores")
   (description 
-    "    Forest is a embedded domain-specific language in OCaml for
+    "    TxForest is a embedded domain-specific language in OCaml for
     processing Ad Hoc Filestores. See the github repository for some
     additional details. See papers on Forest, Incremental Forest, and
     TxForest (the last of which is this library) for more in-depth
     details.
-    "
-  )
-  (depends
-    ("async" (>= "v0.12.0"))
-    ("core" (>= "v0.12.0"))
-    ("dune" (and :build (>= "2.4")))
-    ("ocaml" (>= "4.10"))
-    ("menhir" (>= "20200211"))
-    ("ppx_deriving" (>= "4.4.1"))
-    ("ppx_deriving_yojson" (>= "3.5.2"))
-  )
-)
-
-(package
-  (name rawforest)
-  (synopsis "A helper library for Forest")
-  (description 
-    "    This is a helper library and should probably not be exposed.
-    "
-  )
-  (depends
-    ("async" (>= "v0.12.0"))
-    ("core" (>= "v0.12.0"))
-    ("dune" (and :build (>= "2.4")))
-    ("ocaml" (>= "4.10"))
-    ("menhir" (>= "20200211"))
-    ("ppx_deriving" (>= "4.4.1"))
-    ("ppx_deriving_yojson" (>= "3.5.2"))
-  )
-)
-
-(package
-  (name ppx_forest)
-  (synopsis "A helper library for Forest")
-  (description 
-    "    This is a helper library and should probably not be exposed.
-    "
-  )
-  (depends
-    ("async" (>= "v0.12.0"))
-    ("core" (>= "v0.12.0"))
-    ("dune" (and :build (>= "2.4")))
-    ("ocaml" (>= "4.10"))
-    ("menhir" (>= "20200211"))
-    ("ppx_deriving" (>= "4.4.1"))
-    ("ppx_deriving_yojson" (>= "3.5.2"))
-  )
-)
-
-(package
-  (name parser_helper)
-  (synopsis "A helper library for Forest")
-  (description 
-    "    This is a helper library and should probably not be exposed.
     "
   )
   (depends

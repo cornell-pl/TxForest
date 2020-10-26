@@ -59,7 +59,7 @@ module Server = struct
 let () =
   let open Command.Let_syntax in
   Command.async
-    ~summary:"Start filesystem client (MAKE SURE TO START SERVER FIRST!)"
+    ~summary:"Start filesystem server"
     [%map_open
       let port =
         flag "-port" (optional_with_default 8765 int)

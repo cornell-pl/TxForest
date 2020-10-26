@@ -1,71 +1,71 @@
 (executable
   (public_name testPpx)
   (name testPpx)
-  (preprocess (pps ppx_jane ppx_forest))
-  (libraries core rawforest forest str)
+  (preprocess (pps ppx_jane ppx_txforest))
+  (libraries core rawforest txForest str)
   (modules TestPpx)
-  (package forest)
+  (package txForest)
 )
 
 (executable
   (public_name simpleEval)
   (name simpleEval)
-  (preprocess (pps ppx_jane ppx_forest))
-  (libraries core rawforest forest)
+  (preprocess (pps ppx_jane ppx_txforest))
+  (libraries core rawforest txForest)
   (modules SimpleEval)
-  (package forest)
+  (package txForest)
 )
 
 (executable
   (public_name simpleEvalSurf)
   (name simpleEvalSurf)
-  (preprocess (pps ppx_jane ppx_forest))
-  (libraries core rawforest  forest)
+  (preprocess (pps ppx_jane ppx_txforest))
+  (libraries core rawforest  txForest)
   (modules SimpleEvalSurf)
-  (package forest)
+  (package txForest)
 )
 
 ;(library
 ;  (name ExUtils)
 ;  (modules ExUtils)
 ;  (preprocess (pps ppx_jane))
-;  (libraries core rawforest forest)
+;  (libraries core rawforest txForest)
 ;)
 ;
 ;(executable
 ;  (public_name grades)
 ;  (name grades)
 ;  (preprocess (pps ppx_jane))
-;  (libraries core rawforest forest ExUtils)
+;  (libraries core rawforest txForest ExUtils)
 ;  (modules Grades)
-;  (package forest)
+;  (package txForest)
 ;)
 ;
 ;(executable
 ;  (public_name shelter)
 ;  (name shelter)
 ;  (preprocess (pps ppx_jane))
-;  (libraries core rawforest  forest ExUtils)
+;  (libraries core rawforest  txForest ExUtils)
 ;  (modules Shelter)
-;  (package forest)
+;  (package txForest)
 ;)
 
 ;(executable
 ;  (public_name shelterppx)
 ;  (name shelterppx)
-;  (preprocess (pps ppx_jane ppx_forest))
-;  (libraries core rawforest  forest ExUtils str)
+;  (preprocess (pps ppx_jane ppx_txforest))
+;  (libraries core rawforest  txForest ExUtils str)
 ;  (modules Shelterppx)
-;  (package forest)
+;  (package txForest)
 ;)
 
 ;(executable
 ;  (public_name simple)
 ;  (name simple)
 ;  (preprocess (pps ppx_jane))
-;  (libraries core rawforest  forest ExUtils)
+;  (libraries core rawforest  txForest ExUtils)
 ;  (modules Simple)
-;  (package forest)
+;  (package txForest)
 ;)
 
 
@@ -73,9 +73,9 @@
 ;  (public_name dependency)
 ;  (name dependency)
 ;  (preprocess (pps ppx_jane))
-;  (libraries core rawforest forest)
+;  (libraries core rawforest txForest)
 ;  (modules Dependency)
-;  (package forest)
+;  (package txForest)
 ;)
 
 ;(env

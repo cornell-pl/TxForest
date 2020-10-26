@@ -1,6 +1,6 @@
 (library
- (public_name ppx_forest)
- (name ppx_forest)
+ (public_name txForest.ppx_txforest)
+ (name ppx_txforest)
  (kind ppx_rewriter)
  (ppx_runtime_libraries re ppxlib parser_helper)
  (libraries re ppxlib parser_helper)

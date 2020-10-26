@@ -1,10 +1,10 @@
 (library
-  (public_name rawforest)
+  (public_name txForest.rawforest)
   (name rawforest)
   (flags (:standard -w -32-g))
   (libraries core re str async)
   (preprocess (pps ppx_deriving.show ppx_deriving.make ppx_jane))
-  (modules Utils PosixFilesystem SimpleFilesystem UncommitedPosixFilesystem Filesystems TxForest TxForestGlobal)
+  (modules Utils PosixFilesystem SimpleFilesystem UncommitedPosixFilesystem Filesystems TxForestInternal TxForestGlobal)
 )
 
 ; make add Utils, EvalForest private -> both needed for typing

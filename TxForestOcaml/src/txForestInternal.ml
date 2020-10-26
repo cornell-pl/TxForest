@@ -40,10 +40,10 @@ and  specification =
   | Null
   | File
   | Dir
-  | PathExp of name fexp * specification
+  | PathExp of name fexp * specification 
   | DPair of Var.t * specification * specification
-  | Comp of specification * Var.t * SSet.t fexp
-  | Opt of specification
+  | Comp of specification * Var.t * SSet.t fexp 
+  | Opt of specification  
   | Pred of bool fexp [@@deriving show]
 
 and 'a fexp = fs -> env -> 'a
@@ -73,6 +73,21 @@ type thread = ctxt * fs * forest_command
 type t = ctxt * fs * local_log
 
 
+let rec show_spec ?(depth=1) s = 
+  if depth < 1 
+  then "<max_depth>"
+  else
+    match s with
+    | Null
+    | File
+    | Dir
+    | Pred _ -> show_specification s
+    | PathExp (_,s) -> Printf.sprintf "PathExp(%s)" (show_spec s ~depth:(depth-1)) 
+    | DPair (v,s1,s2) -> Printf.sprintf "DPair(%s,%s,%s)" (Var.to_string v) (show_spec s1 ~depth:(depth-1)) (show_spec s2 ~depth:(depth-1)) 
+    | Comp (s,v,_) -> Printf.sprintf "Comp(%s,%s)" (show_spec s ~depth:(depth-1)) (Var.to_string v)
+    | Opt (s) -> Printf.sprintf "Opt(%s)" (show_spec s ~depth:(depth-1)) 
+    
+
 let print_fetch_result = Fn.compose (Printf.printf "%s \n") show_fetch_result
 
 let make_zipper ?ancestor ?(left=[]) ?(right=[]) current = {ancestor; left; current; right}
@@ -84,10 +99,14 @@ let is_path = function
 
 let empty_env : env = (Var.Map.empty, Var.Map.empty)
 
+let get_ancestor_string {ancestor; _} =
+  Option.map ancestor ~f:(fun {current = (_,s); _} -> show_spec s ~depth:2)
+  |> Option.value ~default:"N/A"
 
-let eval_forest_navigation fn (ctxt, fs, l) : t or_fail =
+let eval_forest_navigation fn ((p,ps,z), fs, l) : t or_fail =
 (*   let%bind (fs, p, ps, z) = sync_path t in *)
-  let p, ps, z = ctxt in
+  d "Navigation was %s" (show_forest_navigation fn);
+  d "Navigation ancestor was %s" (get_ancestor_string z);
   match fn, z  with
   | Down, {current = (env_l, PathExp (f, s) ); _ } -> begin
       let u = f fs env_l in
@@ -160,11 +179,13 @@ let eval_forest_update fu (ctxt, fs, l) : t or_fail =
         ((p'', ps, z), fs'', l)
   end
   | Store_Dir f, {current = (env, Dir); _ } ->begin
+      d "storing dir";
       let s = f fs env in
       let old_log = !l in
       let%bind (fs', p') = TempFS.make_directory (Set.to_list s) (fs, p)  in
       let l' = TempFS.get_log (fs', p') in
       let%map (fs'', p'') = TempFS.clear_log (fs', p') in
+        d "dir was stored";
         l := old_log @ l';
         ((p'', ps, z), fs'', l)
   end
@@ -184,6 +205,7 @@ let eval_forest_update fu (ctxt, fs, l) : t or_fail =
 
 let fetch ((p, ps, z), fs, l) : fetch_result or_fail =
 (*   let%bind (fs, p, ps, z) = sync_path t in *)
+  d "fetching path: %s" p;
   match z with
   | {current = (_, File); _ } ->
     begin
@@ -303,8 +325,8 @@ let create (s:specification) ?(p: path option) () : t=
   let p = match p with None -> TempFS.dummy_path | Some p' -> p' in
   let ps = PathSet.singleton p in
   let z = make_zipper (empty_env, s) in
-  let ctxt = (p, ps, z) in
-  let fs = match TempFS.create p with Ok (fs, p) -> fs | _ -> failwith "unable t make fs" in
+  let (fs,p') = match TempFS.create p with Ok (fs, p') -> (fs,p') | _ -> failwith "unable to make fs" in
+  let ctxt = (p', ps, z) in
   let l = ref [] in
   let t = (ctxt, fs, l) in
     async_print t;
@@ -322,14 +344,15 @@ let rec update_global_fs (ll: log) (fs: PermFS.t)  : PermFS.t or_fail =
   | (Write_file (_ , File (u) , p)) :: tl -> begin
     PermFS.goto p fs >>= PermFS.make_file u >>= update_global_fs tl
   end
-  | (Write_directoy (_ , Dir (l), p)) :: tl -> begin
+  | (Write_directory (_ , Dir (l), p)) :: tl -> begin
     PermFS.goto p fs >>= PermFS.make_directory l >>= update_global_fs tl
   end
   | (Write_file (_ , _ , _)) :: _ -> mk_err "you tryed to write somethin other than a file with Write_file"
-  | (Write_directoy (_ , _ , _)) :: _ -> mk_err "you tryed to write somethin other than a dir with Write_dir"
+  | (Write_directory (_ , _ , _)) :: _ -> mk_err "you tryed to write somethin other than a dir with Write_dir"
 
 
 let merge (ll: log) (p:path) : unit =
+  d "Tried to merge";
   let fs = PermFS.create p in
   let _ : PermFS.t or_fail = fs >>= (update_global_fs ll) in
     ()
@@ -337,9 +360,10 @@ let merge (ll: log) (p:path) : unit =
 
 (*given the gohead to update the global fs*)
 let commit ((p, ps, z), fs, l) : t or_fail =
-  merge (!l) p;
-  TempFS.create p
-  >>= (fun (fs', p') ->
+  let wp = TempFS.get_working_path (fs,p) in
+  merge (!l) wp;
+  TempFS.create wp
+  >>= (fun (fs', _) ->
     mk_ok ((p, ps, z), fs', ref [])
   )
 

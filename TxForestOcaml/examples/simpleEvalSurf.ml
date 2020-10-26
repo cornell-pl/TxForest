@@ -1,6 +1,6 @@
 open Core
 
-open Forest
+open TxForest
 open Rawforest
 open Utils
 open ForestIntf

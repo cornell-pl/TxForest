@@ -64,6 +64,9 @@ module type Filesystem = sig
   val run_txn: f:(fs -> 'a or_fail) -> unit -> ('a,txError) Core.result
 
   val dummy_path: path
+
+  (*[get_working_path t] gets the current working path *)
+  val get_working_path: t -> path
 end
 
 module TempFS : Filesystem

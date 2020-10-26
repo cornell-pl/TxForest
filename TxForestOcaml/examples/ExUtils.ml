@@ -1,6 +1,6 @@
 open Core
 open Result.Let_syntax
-open Forest
+open TxForest
 open OldForest
 type score = int
 

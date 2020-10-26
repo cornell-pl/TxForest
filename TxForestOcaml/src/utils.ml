@@ -26,7 +26,7 @@ type path = string
 type le =
   | Read of contents * path
   | Write_file of contents * contents * path
-  | Write_directoy of contents * contents * path
+  | Write_directory of contents * contents * path
 
 type log = le list
 

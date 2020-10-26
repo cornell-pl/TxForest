@@ -1,5 +1,5 @@
 open Core
-open Forest
+open TxForest
 open Rawforest
 open Utils
 open ForestIntf
@@ -422,7 +422,7 @@ let assign_grade grader z =
 
 let tx_grade ?grader () =
   let grader = Option.value_exn ~message:"tx_grade: Grader is required for this operation" grader in
-  let _ : TxForest.t = loop_txn grades_spec "/grades" ~f:(get_next grader) () in
+  let _ : ForestIntf.t = loop_txn grades_spec "/grades" ~f:(get_next grader) () in
   loop_txn grades_spec "/grades" ~f:(assign_grade grader) ()
 
 let () =

@@ -8,7 +8,7 @@
 )
 
 (library
- (public_name parser_helper)
+ (public_name txForest.parser_helper)
  (name parser_helper)
  (libraries core async compiler-libs.common ppxlib)
  (preprocess (pps ppx_jane ppx_deriving.std))

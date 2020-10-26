@@ -20,14 +20,14 @@ let conflict_path (p':path) (e: le) : bool =
   match e with
   | Read _ -> false
   | Write_file (_, _, p) -> String.is_prefix p' ~prefix:p
-  | Write_directoy (_, _, p) -> String.is_prefix p' ~prefix:p
+  | Write_directory (_, _, p) -> String.is_prefix p' ~prefix:p
 
 let rec extract_paths (ll: log) : path list =
   match ll with
   | [] -> []
   | (Read (_, p))::tl -> p::(extract_paths tl)
   | (Write_file (_, _, p))::tl -> p::(extract_paths tl)
-  | (Write_directoy (_, _, p))::tl -> p::(extract_paths tl)
+  | (Write_directory (_, _, p))::tl -> p::(extract_paths tl)
 
 let check_log (ll: log) (ts: ts) : bool =
   let gl = (!global_log) in
