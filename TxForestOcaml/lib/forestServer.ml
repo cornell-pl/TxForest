@@ -4,7 +4,7 @@ open Utils
 
 type command =
   | Commit of log
-  | CommitFinished
+  | CommitFinished [@@deriving show]
 
 module Server = struct
 
@@ -37,6 +37,7 @@ module Server = struct
   let rec run_loop reader writer =
     read_and_run reader
     ~f:(fun command ->
+        d "got command %s" (show_command command);
         Async.Deferred.Result.return (eval_command command writer)
         >>= fun result -> run_loop reader writer
     )

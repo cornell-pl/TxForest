@@ -113,8 +113,8 @@ let get_score_full hw student problem z =
 let get_print_score ~hw ?student ?problem =
   let student = Option.value_exn ~message:"get_print_score: Supply a student please" student in
   let problem = Option.value_exn ~message:"get_print_score: Supply a problem please" problem in
-  loop_txn grades_spec "/grades" ~f:(fun z ->
-    get_score_full hw student problem z  >>| p "Score was %d\n"
+  TxForestCore.loop_txn grades_spec "/grades" ~f:(fun z ->
+    get_score_full hw student problem z >>|  p "Score was %d\n"
   )
 
 (* PaperEx Opt 2:
@@ -164,7 +164,7 @@ let update_rubric_and_grades_trans hw problem max_score ~f z =
 let update_rubric_and_grades ~hw ?problem ?max_score =
   let problem = Option.value_exn ~message:"update_rubric_and_grades: Supply a problem please" problem in
   let max_score = Option.value_exn ~message:"update_rubric_and_grades: Supply a max-score please" max_score in
-  loop_txn grades_spec "/grades" ~f:(update_rubric_and_grades_trans hw problem max_score ~f:succ)
+  TxForestCore.loop_txn grades_spec "/grades" ~f:(update_rubric_and_grades_trans hw problem max_score ~f:succ)
 
 
 let check_rubric_and_grade_trans hw student problem max_score score z =
@@ -179,7 +179,7 @@ let check_rubric_and_grade ~hw ?student ?problem ?max_score ?score =
   let problem = Option.value_exn ~message:"check_rubric_and_grade: Supply a problem please" problem in
   let max_score = Option.value_exn ~message:"check_rubric_and_grade: Supply a max-score please" max_score in
   let score = Option.value_exn ~message:"check_rubric_and_grade: Supply a score please" score in
-  loop_txn grades_spec "/grades" ~f:(check_rubric_and_grade_trans hw student problem max_score score)
+  TxForestCore.loop_txn grades_spec "/grades" ~f:(check_rubric_and_grade_trans hw student problem max_score score)
 
 (* PaperEx Opt 3:
    - T1: Renormalize
@@ -198,7 +198,6 @@ let hw_map_totals ~f =
     d "Score before/after = %d / %d\n" score score_new;
     set_student_total score_new z' >>= up
   )
-
 
 let renorm featmin featmax goalmin goalmax score =
   d "Renormalizing with Xmin = %d, Xmax = %d, goalmin = %d, goalmax = %d\n"
@@ -226,7 +225,7 @@ let renormalize_trans hw goalmin goalmax z =
 let renormalize ~hw ?min ?max =
   let min = Option.value_exn ~message:"renormalize: Supply a minimum score please" min in
   let max = Option.value_exn ~message:"renormalize: Supply a maximum score please" max in
-  loop_txn grades_spec "/grades" ~f:(renormalize_trans hw min max)
+  TxForestCore.loop_txn grades_spec "/grades" ~f:(renormalize_trans hw min max)
 
 
 
@@ -387,6 +386,7 @@ let get_next grader z =
       |> queue_to_yojson |> Yojson.Safe.to_string
     in
     store_file u z'
+    
   | [] -> mk_err "Queue is empty"
 
 let inputRef : score option ref = ref None
@@ -422,8 +422,8 @@ let assign_grade grader z =
 
 let tx_grade ?grader () =
   let grader = Option.value_exn ~message:"tx_grade: Grader is required for this operation" grader in
-  let _ : ForestIntf.t = loop_txn grades_spec "/grades" ~f:(get_next grader) () in
-  loop_txn grades_spec "/grades" ~f:(assign_grade grader) ()
+  let _ : ForestIntf.t = TxForestCore.loop_txn grades_spec "/grades" ~f:(get_next grader) () in
+  TxForestCore.loop_txn grades_spec "/grades" ~f:(assign_grade grader) ()
 
 let () =
   let open Command.Let_syntax in
@@ -485,6 +485,6 @@ let () =
       | 9 -> ignore_after_f (update_rubric_and_grades ~hw ?problem ?max_score)
       | 10 -> ignore_after_f (check_rubric_and_grade ~hw ?student ?problem ?max_score ?score)
       | 11 -> ignore_after_f (renormalize ~hw ?min ?max)
-      | _ -> ignore_after_f (loop_txn grades_spec "/grades" ~f:(main ~op ~hw ~debug ?student ?problem ?score))
+      | _ -> ignore_after_f (TxForestCore.loop_txn grades_spec "/grades" ~f:(main ~op ~hw ~debug ?student ?problem ?score))
     ]
     |> Command.run

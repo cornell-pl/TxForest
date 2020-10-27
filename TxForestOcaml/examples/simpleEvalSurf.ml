@@ -68,8 +68,8 @@ let main (trans :int) (id: int option) (name:string option) (debug: bool) zipper
     | _ -> failwithf "Transaction %d is not implemented yet" trans ()
   end
   |> function
-  | Ok zipper -> zipper
-  | Error s -> p "Error: %s\n" s; zipper
+  | Ok zipper -> (zipper, zipper)
+  | Error s -> p "Error: %s\n" s; (zipper, zipper)
 
 
 
@@ -88,7 +88,7 @@ let () =
                   ~doc:"should print the debugging statements"
       in
       if debug then Utils.set_debug () else ();
-      ignore_after_f (loop_txn_noExn d_spec "/simple" ~f:(main trans id name debug))
+      ignore_after_f (TxForestCore.loop_txn_noExn d_spec "/simple" ~f:(main trans id name debug))
     ]
     |> Command.run
 

@@ -58,10 +58,10 @@ module type Filesystem = sig
   val sync_path: t -> t or_fail
 
   (*[loop_txn ~f ()] loops the transaction f until it commits *)
-  val loop_txn: f:(fs -> 'a) -> unit -> 'a
+  val loop_txn: f:(t -> 'a) -> unit -> 'a
 
   (*[run_txn f ()] runs the transaction f and attempts to commit it once *)
-  val run_txn: f:(fs -> 'a or_fail) -> unit -> ('a,txError) Core.result
+  val run_txn: f:(t -> 'a or_fail) -> unit -> ('a,txError) Core.result
 
   val dummy_path: path
 

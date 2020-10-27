@@ -133,7 +133,7 @@ let fetch_helper (fs: fs_map) (p:path): contents =
     | Some c -> c
     | _ -> failwith "fetch: path does not exist"
   else
-    let () = Printf.printf "Fetch helper found uncached path %s\n" p in
+    let () = d "Fetch helper found uncached path %s\n" p in
     (*not in the cache of the file system, check if its in the real fs*)
     if is_dir_helper fs p then
       let dir_contents = Sys.ls_dir p in
@@ -231,7 +231,7 @@ let split_by_prefix wp p =
 (*TODO: make this do the checking*)
 let goto (new_p:string) (((fs, working_path, l),p):t) : t or_fail =
   let new_p = !working_path ^/ p ^/ new_p |> Filename.realpath in
-  let parent_dir = Filename.basename new_p in
+  let parent_dir = Filename.dirname new_p in
   let%bind new_p = split_by_prefix !working_path new_p in
     if not (exists_helper fs parent_dir) then
       mk_err "goto - parent of new path ( %s ) does not exist" new_p
@@ -283,18 +283,18 @@ let get_working_path (((_, working_path, _), p):t) : path =
 let convert_result res = map_error res ~f:(fun err -> (OpError err))
 
 (*TODO: error handlling*)
-let run_txn ~(f : fs -> 'a or_fail) () : ('a,txError) Core.result =
+let run_txn ~(f : t -> 'a or_fail) () : ('a,txError) Core.result =
   match create dummy_path with
-  | Ok (fs, _) -> f fs |> convert_result
+  | Ok t -> f t |> convert_result
   | Error _ -> Error TxError
 
 
 (* TODO: Why does this do what you think it does?! *)
-let loop_txn ~(f : fs -> 'a) () : 'a =
+let loop_txn ~(f : t -> 'a) () : 'a =
   let x : 'a option ref = ref None in
-  let apply fs =
-    x := Some(f fs);
-    mk_ok fs
+  let apply t =
+    x := Some(f t);
+    mk_ok t
   in
-    let _ : (fs,txError) Core.result = run_txn ~f:apply () in
-    Option.value_exn ~message:"loop_txn: Something went horribly wrong" !x
+  let _ : (t,txError) Core.result = run_txn ~f:apply () in
+  Option.value_exn ~message:"loop_txn: Something went horribly wrong" !x

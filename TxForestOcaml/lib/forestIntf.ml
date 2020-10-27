@@ -67,13 +67,9 @@ type command =
   | CommitFinished
 
 type t = TxForestInternal.t
+type connection = t * Async.Reader.t * Async.Writer.t
 
 (* Additional *)
-
-let loop_txn_noExn = loop_txn_noExn
-let loop_txn = loop_txn
-let run_txn = run_txn
-
 
 let print_fetch_result = TxForestInternal.print_fetch_result
 let print = TxForestInternal.print
@@ -269,7 +265,7 @@ module TxForestCoreOpen = struct
 
   open Async
 
-  let send_and_receive : command -> (t * Reader.t * Writer.t) -> (t * Reader.t * Writer.t) out
+  let send_and_receive : command -> connection -> connection out
     = fun command (t, reader,writer) ->
       Rawforest.Utils.block
       ( fun () ->
@@ -281,7 +277,7 @@ module TxForestCoreOpen = struct
         | `Ok (Ok _) -> Result.return (t, reader,writer)
       )
 
-  let create s p ?(port=8765) ?(host="localhost") () : (t * Reader.t * Writer.t) =
+  let create s p ?(port=8765) ?(host="localhost") () : connection =
     block (
       fun () ->
       Tcp.connect
@@ -298,17 +294,39 @@ module TxForestCoreOpen = struct
       )
     )
 
-  open Result
-  open Result.Let_syntax
+open Result
+open Result.Let_syntax
+
   let commit (t, reader, writer) =
     send_and_receive (Commit (get_log t)) (t, reader, writer)
     >>= (fun (t, reader, writer) ->
       let%bind t = TxForestInternal.commit t in
         send_and_receive CommitFinished (t, reader, writer)
-        >>= (fun (t, reader, writer) ->
-          mk_ok (t, reader, writer)
-        )
     )
+
+
+  (* Run and loop txn *)
+
+  let run_txn ~(f:TxForestInternal.t -> 'a or_fail) (s:specification) (p:string) () =
+    let (z,r,w) = create s p () in
+    let%bind x = f z in
+    let%map t = commit (z,r,w) in 
+    x
+  let rem_exn f t =
+    try 
+      f t |> mk_ok
+    with _ -> mk_err "loop_txn_noExn: got an exception" 
+
+  let rec loop_txn_noExn ~(f:TxForestInternal.t -> 'a) (s:specification) (p:string) () =
+    let loop = loop_txn_noExn ~f s p in
+    match run_txn ~f:(rem_exn f) s p () with
+    | Ok x -> x 
+    (* TODO: This is a terrible hack. Make an ADT instead... *)
+    | Error c when String.is_substring ~substring:"Conflict" c -> loop ()
+    | Error err -> failwithf "Error: %s" err ()
+
+  let loop_txn ~f = loop_txn_noExn ~f:(Fn.compose Result.ok_or_failwith f)
+
 end
 
 module TxForestCore  = struct
@@ -415,7 +433,7 @@ module TxForestCoreExn = struct
   open Async
   open Utils
 
-  let send_and_receive : command -> (t * Reader.t * Writer.t) -> (t * Reader.t * Writer.t)
+  let send_and_receive : command -> connection -> connection
     = fun command (t, reader,writer) ->
       block
       ( fun () ->
@@ -427,7 +445,7 @@ module TxForestCoreExn = struct
         | `Ok (Ok _) -> (t, reader,writer)
       )
 
-  let create s p ?(port=8765) ?(host="localhost") () : (t * Reader.t * Writer.t) =
+  let create s p ?(port=8765) ?(host="localhost") () : connection =
     block (
       fun () ->
       Tcp.connect
@@ -449,6 +467,29 @@ module TxForestCoreExn = struct
     match TxForestInternal.commit t with
     | Error e -> failwithf "Commit failed with error: %s" e ()
     | Ok t -> send_and_receive CommitFinished (t, reader, writer)
+
+  open Result
+  open Result.Let_syntax
+
+  let run_txn ~(f:TxForestInternal.t -> (TxForestInternal.t * 'a) or_fail) (s:specification) (p:string) () =
+    let (z,r,w) = create s p () in
+    let%bind (z,x) = f z in
+    let _ : connection = commit (z,r,w) in 
+    x
+    
+  let rem_exn f t =
+    try 
+      f t |> mk_ok
+    with _ -> mk_err "loop_txn_noExn: got an exception" 
+
+  let rec loop_txn_noExn ~(f:TxForestInternal.t -> (TxForestInternal.t * 'a)) (s:specification) (p:string) () =
+    match run_txn ~f:(rem_exn f) s p () with
+    | Ok x -> x
+    (* TODO: This is a terrible hack. Make an ADT instead... *)
+    | Error c when String.is_substring ~substring:"Conflict" c -> loop_txn_noExn ~f s p ()
+    | Error err -> failwithf "Error: %s" err ()
+
+  let loop_txn ~f = loop_txn_noExn ~f:(Fn.compose Result.ok_or_failwith f)
 end
 
 
@@ -758,4 +799,5 @@ let glob_match_from_string reg str =
     let _ : Re.Group.t = Re.exec (Re.compile (Re.Glob.glob reg)) str in
     true
   with Not_found | Not_found_s _ -> false [@@warning "-3"]
+
 

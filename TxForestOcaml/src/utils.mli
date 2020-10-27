@@ -53,7 +53,7 @@ type le =
  * note: we dont have timestamps here since, none of these actions have
  * been commited yet!
  *)
-type log = le list
+type log = le list  [@@deriving show]
 
 type 'a or_fail = ('a, string) Core.result
 

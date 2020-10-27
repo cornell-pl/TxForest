@@ -211,19 +211,19 @@ let get_working_path ((_, p):t) : path =
   p
 
 (*TODO: error handlling*)
-let run_txn ~(f : fs -> 'a or_fail) () : ('a,txError) Core.result =
+let run_txn ~(f : t -> 'a or_fail) () : ('a,txError) Core.result =
   match create dummy_path with
-  | Ok (fs, _) -> f fs |> convert_result
+  | Ok t -> f t |> convert_result
   | Error _ -> Error TxError
 
 (* TODO: Why does this do what you think it does?! *)
-let loop_txn ~(f : fs -> 'a) () =
+let loop_txn ~(f : t -> 'a) () =
   let x : 'a option ref = ref None in
-  let apply fs =
-    x := Some(f fs);
-    mk_ok fs
+  let apply t =
+    x := Some(f t);
+    mk_ok t
   in
-    let _ : (fs,txError) Core.result = run_txn ~f:apply () in
+    let _ : (t,txError) Core.result = run_txn ~f:apply () in
     Option.value_exn ~message:"loop_txn: Something went horribly wrong" !x
 
 

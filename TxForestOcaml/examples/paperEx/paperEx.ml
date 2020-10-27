@@ -29,6 +29,8 @@ open Let_syntax
 
 (* Helpers *)
 
+let base_dir = "examples/paperEx/grades"
+
 let ignore_after_f (f : 'a -> 'b) = Fn.compose Core.ignore f
 
 let parse_score u =
@@ -74,7 +76,7 @@ let get_score_input ~hw ?student  =
     p "%s's grade for hw%d: %d\n" student hw score
   in
   let student = Option.value_exn ~message:"get_score: Supply a student please" student in
-  loop_txn grades_spec "/grades2" ~f:(get_score_trans hw student)
+  TxForestCore.loop_txn grades_spec base_dir ~f:(get_score_trans hw student)
 
 (* Set Score *)
 let set_score_input ~hw ?student ?score =
@@ -85,7 +87,7 @@ let set_score_input ~hw ?student ?score =
   in
   let student = Option.value_exn ~message:"set_score: Supply a student please" student in
   let score = Option.value_exn ~message:"set_score: Supply a score please" score in
-  loop_txn grades_spec "/grades2" ~f:(set_score_trans hw student score)
+  TxForestCore.loop_txn grades_spec base_dir ~f:(set_score_trans hw student score)
 
 (* PaperEx Opt 3:
    - T1: Renormalize
@@ -128,7 +130,7 @@ let renormalize_trans hw goalmin ?max z =
 
 let renormalize ~hw ?min ?max =
   let min = Option.value_exn ~message:"renormalize: Supply a minimum score please" min in
-  loop_txn grades_spec "/grades2" ~f:(renormalize_trans hw min ?max)
+  TxForestCore.loop_txn grades_spec base_dir ~f:(renormalize_trans hw min ?max)
 
 let () =
   let open Command.Let_syntax in

@@ -19,16 +19,16 @@ type name = string [@@deriving show]
 
 type 'a or_fail = ('a,string) Core.result
 
-type contents = Dir of string list | File of string
+type contents = Dir of string list | File of string [@@deriving show]
 
-type path = string
+type path = string [@@deriving show]
 
 type le =
   | Read of contents * path
   | Write_file of contents * contents * path
-  | Write_directory of contents * contents * path
+  | Write_directory of contents * contents * path [@@deriving show]
 
-type log = le list
+type log = le list [@@deriving show]
 
 type fetch_rep =
   | FileRep of string

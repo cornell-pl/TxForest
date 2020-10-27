@@ -267,8 +267,9 @@ let verify t = failwith "TODO: Implement"
 let check c t = failwith "TODO: Implement"
 
 let loop_txn_noExn ~(f:t->'a) (s:specification) (p:string) () =
-  let f_to_z (fs: fs) : 'a =
-    match TempFS.goto p (fs, TempFS.dummy_path) with
+  let f_to_z (fs : TempFS.t) : 'a =
+    d "fs path = %s" (TempFS.get_working_path fs);
+    match TempFS.goto p fs with
     | Error _ -> failwithf "loop_txn: path %s does not exist" p ()
     | Ok (fs', p') -> begin
       ((p', PathSet.singleton p', make_zipper (empty_env, s)), fs', ref [])
@@ -280,8 +281,8 @@ let loop_txn_noExn ~(f:t->'a) (s:specification) (p:string) () =
 let loop_txn ~f = loop_txn_noExn ~f:(Fn.compose Result.ok_or_failwith f)
 
 let run_txn ~(f:t->'a or_fail) (s:specification) (p:string) () =
-  let f_to_z (fs: fs) : 'a or_fail =
-    match TempFS.goto p (fs, TempFS.dummy_path) with
+  let f_to_z (fs: TempFS.t) : 'a or_fail =
+    match TempFS.goto p fs with
     | Error _ -> failwithf "run_txn: path %s does not exist" p ()
     | Ok (fs', p') -> begin
       ((p', PathSet.singleton p', make_zipper (empty_env, s)), fs', ref [])
