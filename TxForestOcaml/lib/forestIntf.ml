@@ -78,6 +78,11 @@ let debug_print = TxForestInternal.debug_print
 
 let d = Utils.d
 let set_debug = Utils.set_debug
+let p = Utils.p
+
+type 'a or_fail = 'a Utils.or_fail
+let mk_err = Utils.mk_err
+let mk_ok = Utils.mk_ok
 
 
 
@@ -312,14 +317,16 @@ open Result.Let_syntax
     let%bind x = f z in
     let%map t = commit (z,r,w) in 
     x
+    
+(* 
   let rem_exn f t =
     try 
       f t |> mk_ok
-    with _ -> mk_err "loop_txn_noExn: got an exception" 
+    with _ -> mk_err "loop_txn_noExn: got an exception"  *)
 
   let rec loop_txn_noExn ~(f:TxForestInternal.t -> 'a) (s:specification) (p:string) () =
     let loop = loop_txn_noExn ~f s p in
-    match run_txn ~f:(rem_exn f) s p () with
+    match run_txn ~f:(Fn.compose mk_ok f) s p () with
     | Ok x -> x 
     (* TODO: This is a terrible hack. Make an ADT instead... *)
     | Error c when String.is_substring ~substring:"Conflict" c -> loop ()

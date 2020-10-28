@@ -1,7 +1,5 @@
 open Core
 open TxForest
-open Rawforest
-open Utils
 open ForestIntf
 open Result
 open Result.Let_syntax
@@ -309,7 +307,7 @@ let add_to_grade_queue ~hw ?student ~problem z =
 let main ~(op : int) ~(hw : hw) ~(debug : bool) ?(student : student option)
     ?(problem : problem option) ?(score : score option)
     (z : ForestIntf.t) : ForestIntf.t or_fail =
-  if debug then Utils.set_debug ();
+  if debug then set_debug ();
   match op with
   | 0 ->
     let%bind z' = goto_hw hw z >>= goto "students" in

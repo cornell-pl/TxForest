@@ -1,7 +1,5 @@
 open Core
 open TxForest
-open Rawforest
-open Utils
 open ForestIntf
 open Result
 open Result.Let_syntax
@@ -160,7 +158,7 @@ let () =
       and debug = flag "debug" (no_arg)
                   ~doc:"Print debug statements"
       in
-      if debug then Utils.set_debug ();
+      if debug then set_debug ();
       match op with
       | 0 -> get_score_input ~hw ?student
       | 1 -> set_score_input ~hw ?student ?score
